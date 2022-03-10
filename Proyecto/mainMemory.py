@@ -7,15 +7,15 @@ class MainMemory:
         self.delay_time = delay_time
         self.memory = ["0x0000" for _ in range(self.capacity)]
 
-    def write(self, block_number: int, new_value: str):
+    def write(self, address: int, new_value: str):
         self.delay()
-        if block_number < self.capacity:
-            self.memory[block_number] = new_value
+        if address < self.capacity:
+            self.memory[address] = new_value
 
-    def read(self, block_number: int) -> str:
+    def read(self, address: int) -> str:
         self.delay()
-        if block_number < self.capacity:
-            return self.memory[block_number]
+        if address < self.capacity:
+            return self.memory[address]
 
     def obtain_content(self) -> []:
         return self.memory
