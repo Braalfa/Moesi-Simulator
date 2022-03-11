@@ -4,11 +4,12 @@ from CPU.instruction import InstructionType
 from Cache.cacheController import CacheController
 import time
 import threading
+import logging
 
 
 # TODO: The cpu executes the instructions and talks to the cache via the cache controller
 class CPU:
-    def __init__(self, processor_number: int, cache_controller: CacheController,
+    def __init__(self, processor_number: int, cache_controller: CacheController, logger: logging.Logger,
                  number_of_memory_blocks: int = 8, block_width_hexadecimal: int = 4,
                  calculation_time: int = 1):
         self.processor_number = processor_number
@@ -18,6 +19,8 @@ class CPU:
                                                            block_width_hexadecimal=block_width_hexadecimal)
         self.calculation_time = calculation_time
         self.execute_flag = True
+        self.logger = logger
+
 
     def start_execution(self):
         thread = threading.Thread(target=self.run, args=())
@@ -26,7 +29,9 @@ class CPU:
 
     def run(self):
         while self.execute_flag:
+            self.logger.info("Running on processor " + str(self.processor_number))
             instruction = self.obtain_next_instruction()
+            self.logger.info("Instruction on processor " + str(self.processor_number) + " instruction " + instruction.__str__())
             self.execute_instruction(instruction)
 
     def obtain_next_instruction(self) -> Instruction:

@@ -19,6 +19,7 @@ class CacheLine:
     def set_data(self, data: str):
         self.data = data
 
+
 class Cache:
     def __init__(self, cache_number, delay_time: int = 1):
         self.cache_number = cache_number

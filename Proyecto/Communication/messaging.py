@@ -18,3 +18,14 @@ class Message:
         self.destination = destination
         self.address = address
         self.data = data
+
+    def __str__(self):
+        string = str(self.message_type)
+        if self.origin is not None:
+            string += " origin:" + str(self.origin)
+        if self.destination is not None:
+            string += " destination:" + str(self.destination)
+        if self.data is not None:
+            string += " data:" + self.data
+        return string
+

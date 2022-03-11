@@ -24,9 +24,10 @@ class Bus:
 
     def process_next_message(self):
         message = self.get_next_message()
+
         if message is None:
-            pass
-        elif message.message_type == MessageType.REQUEST_FROM_MEMORY:
+            return
+        if message.message_type == MessageType.REQUEST_FROM_MEMORY:
             self.deliver_data_from_memory(message)
         elif message.message_type == MessageType.WRITE_BACK:
             self.main_memory.write(message.address, message.data)
@@ -64,7 +65,7 @@ class Bus:
     def obtain_cache_destinations(self, message: Message):
         if message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
-            cache_destinations = [cache for cache in self.cache_controllers]
+            cache_destinations = [cache for cache in self.cache_controllers if cache.cache.cache_number != message.origin]
         else:
-            cache_destinations = self.cache_controllers[message.destination]
+            cache_destinations = [self.cache_controllers[message.destination]]
         return cache_destinations

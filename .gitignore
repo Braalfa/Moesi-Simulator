@@ -2,3 +2,13 @@
 Proyecto/.idea/
 
 Proyecto/__pycache__/
+
+Proyecto/Communication/__pycache__/
+
+Proyecto/CPU/__pycache__/
+
+Proyecto/Enums/__pycache__/
+
+*.log
+
+Proyecto/Cache/__pycache__/
