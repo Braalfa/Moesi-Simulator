@@ -7,14 +7,17 @@ from Communication.messaging import MessageType
 import time
 
 
-# TODO: Include eviction
-# TODO: protect shared resources
-
 class CacheController:
     def __init__(self, cache: Cache):
         self.cache = cache
         self.received_messages_queue = []
         self.send_messages_queue = []
+
+    def return_next_send_message(self):
+        try:
+            return self.send_messages_queue.pop(0)
+        except IndexError:
+            return None
 
     def write_request(self, address: int, new_value: str):
         state = self.cache.obtain_address_state(address)
@@ -68,7 +71,7 @@ class CacheController:
             next_state = State.S
             return self.cache.read_and_update_state(address, next_state)
         elif action == CPUAction.WRITE:
-            self.broadcast_write_miss_2(address)
+            self.broadcast_write_miss(address)
             next_state = State.M
             self.cache.write(address, new_value, next_state)
 
@@ -86,7 +89,7 @@ class CacheController:
             return self.cache.read_and_update_state(address, next_state)
         elif action == CPUAction.WRITE:
             next_state = State.M
-            self.broadcast_write_miss_2(address)
+            self.broadcast_write_miss(address)
             self.cache.write(address, new_value, next_state)
 
     def transition_by_cpu_from_M(self, action: CPUAction, address: int, new_value: str = None):
@@ -114,9 +117,8 @@ class CacheController:
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
             self.cache.update_state(message.address, next_state)
-            self.return_shared_to_bus(message.address)
-        elif message.message_type == MessageType.WRITE_MISS or \
-                MessageType.WRITE_MISS_2:
+            self.return_shared_to_bus(message.address, message.origin)
+        elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
             self.cache.update_state(message.address, next_state)
 
@@ -124,8 +126,8 @@ class CacheController:
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
             self.cache.update_state(message.address, next_state)
-            self.return_shared_to_bus(message.address)
-            self.supply_data_to_bus(message.address, self.cache.read(message.address))
+            self.return_shared_to_bus(message.address, message.origin)
+            self.supply_data_to_bus(message.address, self.cache.read(message.address), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
             self.cache.update_state(message.address, next_state)
@@ -134,11 +136,26 @@ class CacheController:
         if message.message_type == MessageType.READ_MISS:
             next_state = State.O
             self.cache.update_state(message.address, next_state)
-            self.return_shared_to_bus(message.address)
-            self.supply_data_to_bus(message.address, self.cache.read(message.address))
+            self.return_shared_to_bus(message.address, message.origin)
+            self.supply_data_to_bus(message.address, self.cache.read(message.address), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
             self.cache.update_state(message.address, next_state)
+
+    def evict(self, line: CacheLine):
+        current_state = line.state
+        if current_state == State.I:
+            line.state = State.I
+        elif current_state == State.S:
+            line.state = State.I
+        elif current_state == State.E:
+            line.state = State.I
+        elif current_state == State.O:
+            self.ask_write_back(line.address, line.data)
+            line.state = State.I
+        elif current_state == State.M:
+            self.ask_write_back(line.address, line.data)
+            line.state = State.I
 
     def broadcast_read_miss(self, address: int):
         self.send_message_to_bus(MessageType.READ_MISS, address)
@@ -146,11 +163,11 @@ class CacheController:
     def broadcast_write_miss(self, address: int):
         self.send_message_to_bus(MessageType.WRITE_MISS, address)
 
-    def broadcast_write_miss_2(self, address: int):
-        self.send_message_to_bus(MessageType.WRITE_MISS_2, address)
-
     def ask_data_from_memory(self, address: int):
         self.send_message_to_bus(MessageType.REQUEST_FROM_MEMORY, address)
+
+    def ask_write_back(self, address: int, new_value: str):
+        self.send_message_to_bus(MessageType.WRITE_BACK, address, data=new_value)
 
     def are_there_sharers(self, address: int):
         message = self.await_message_from_bus(MessageType.SHARED_RESPONSE, address)
@@ -159,14 +176,15 @@ class CacheController:
         else:
             return False
 
-    def return_shared_to_bus(self, address: int):
+    def return_shared_to_bus(self, address: int, destination: int):
         self.send_message_to_bus(MessageType.SHARED_RESPONSE, address)
 
-    def supply_data_to_bus(self, address: int, data: str):
+    def supply_data_to_bus(self, address: int, data: str, destination: int):
         self.send_message_to_bus(MessageType.DATA_RESPONSE, address, data=data)
 
     def obtain_data_and_overwrite_existing_block(self, block: CacheLine, address: int):
         data = self.read_data_from_bus(address)
+        self.evict(block)
         self.cache.overwrite_block(data, address, block)
 
     def read_data_from_bus(self, address: int):

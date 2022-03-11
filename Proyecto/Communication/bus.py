@@ -2,26 +2,44 @@ from Communication.messaging import Message
 from Communication.messaging import MessageType
 from mainMemory import MainMemory
 from Cache.cacheController import CacheController
+import threading
 
 
-# TODO: READ MESSAGES FROM THE CACHES
 class Bus:
     def __init__(self, cache_controllers: [CacheController], main_memory: MainMemory):
         self.queue = []
         self.cache_controllers = cache_controllers
         self.main_memory = main_memory
 
-    def add_message(self, message: Message):
-        self.queue.append(message)
+    def start_execution(self):
+        thread = threading.Thread(target=self.run, args=())
+        thread.start()
+        return thread
+
+    def run(self):
+        self.obtain_messages()
+        self.process_next_message()
 
     def process_next_message(self):
-        message = self.queue.pop(0)
+        message = self.get_next_message()
         if message.message_type == MessageType.REQUEST_FROM_MEMORY:
             self.deliver_data_from_memory(message)
         elif message.message_type == MessageType.WRITE_BACK:
             self.main_memory.write(message.address, message.data)
         else:
             self.deliver_message_to_caches(message)
+
+    def obtain_messages(self):
+        for cache_controller in self.cache_controllers:
+            message = cache_controller.return_next_send_message()
+            if message is not None:
+                self.add_message(message)
+
+    def add_message(self, message: Message):
+        self.queue.append(message)
+
+    def get_next_message(self):
+        return self.queue.pop(0)
 
     def deliver_data_from_memory(self, incoming_message):
         data = self.main_memory.read(incoming_message.address)
