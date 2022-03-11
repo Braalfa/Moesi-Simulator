@@ -10,6 +10,7 @@ class Bus:
         self.queue = []
         self.cache_controllers = cache_controllers
         self.main_memory = main_memory
+        self.execute_flag = True
 
     def start_execution(self):
         thread = threading.Thread(target=self.run, args=())
@@ -17,8 +18,9 @@ class Bus:
         return thread
 
     def run(self):
-        self.obtain_messages()
-        self.process_next_message()
+        while self.execute_flag:
+            self.obtain_messages()
+            self.process_next_message()
 
     def process_next_message(self):
         message = self.get_next_message()
