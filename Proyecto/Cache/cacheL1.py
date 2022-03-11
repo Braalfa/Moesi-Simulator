@@ -10,6 +10,14 @@ class CacheLine:
         self.address = address
         self.data = data
 
+    def set_state(self, state: State):
+        self.state = state
+
+    def set_address(self, address: int):
+        self.address = address
+
+    def set_data(self, data: str):
+        self.data = data
 
 class Cache:
     def __init__(self, cache_number, delay_time: int = 1):
@@ -26,17 +34,17 @@ class Cache:
 
     def read_and_update_state(self, address: int, next_state: State):
         block = self.find_line_in_cache(address)
-        block.state = next_state
+        block.set_state(next_state)
         return block.data
 
     def write(self, address: int, new_value: str, next_state: State):
         line = self.find_line_in_cache(address)
-        line.data = new_value
-        line.state = next_state
+        line.set_data(new_value)
+        line.set_state(next_state)
 
-    def update_state(self, address: int, next_state: State):
+    def write_state(self, address: int, next_state: State):
         block = self.find_line_in_cache(address)
-        block.state = next_state
+        block.set_state(next_state)
 
     def obtain_address_state(self, address: int):
         line = self.find_line_in_cache(address)
@@ -47,8 +55,8 @@ class Cache:
         return state
 
     def overwrite_block(self, data: str, address: int, line_to_overwrite: CacheLine):
-        line_to_overwrite.address = address
-        line_to_overwrite.data = data
+        line_to_overwrite.set_data(data)
+        line_to_overwrite.set_address(address)
 
     def select_block_to_overwrite(self, address: int):
         set_number = address % 2

@@ -56,10 +56,10 @@ class CacheController:
             if not sharers_found:
                 self.ask_data_from_memory(address)
                 self.obtain_data_and_overwrite_existing_block(block, address)
-                block.state = State.E
+                block.set_state(State.E)
             else:
                 self.obtain_data_and_overwrite_existing_block(block, address)
-                block.state = State.S
+                block.set_state(State.S)
             return block.data
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address)
@@ -116,46 +116,46 @@ class CacheController:
     def transition_by_bus_from_S(self, message: Message):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
-            self.cache.update_state(message.address, next_state)
+            self.cache.write_state(message.address, next_state)
             self.return_shared_to_bus(message.address, message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
-            self.cache.update_state(message.address, next_state)
+            self.cache.write_state(message.address, next_state)
 
     def transition_by_bus_from_E(self, message: Message):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
-            self.cache.update_state(message.address, next_state)
+            self.cache.write_state(message.address, next_state)
             self.return_shared_to_bus(message.address, message.origin)
             self.supply_data_to_bus(message.address, self.cache.read(message.address), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
-            self.cache.update_state(message.address, next_state)
+            self.cache.write_state(message.address, next_state)
 
     def transition_by_bus_from_O_and_M(self, message: Message):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.O
-            self.cache.update_state(message.address, next_state)
+            self.cache.write_state(message.address, next_state)
             self.return_shared_to_bus(message.address, message.origin)
             self.supply_data_to_bus(message.address, self.cache.read(message.address), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
-            self.cache.update_state(message.address, next_state)
+            self.cache.write_state(message.address, next_state)
 
     def evict(self, line: CacheLine):
         current_state = line.state
         if current_state == State.I:
-            line.state = State.I
+            line.set_state(State.I)
         elif current_state == State.S:
-            line.state = State.I
+            line.set_state(State.I)
         elif current_state == State.E:
-            line.state = State.I
+            line.set_state(State.I)
         elif current_state == State.O:
             self.ask_write_back(line.address, line.data)
-            line.state = State.I
+            line.set_state(State.I)
         elif current_state == State.M:
             self.ask_write_back(line.address, line.data)
-            line.state = State.I
+            line.set_state(State.I)
 
     def broadcast_read_miss(self, address: int):
         self.send_message_to_bus(MessageType.READ_MISS, address)
