@@ -1,6 +1,6 @@
-from instructionGenerator import InstructionGenerator
-from instruction import Instruction
-from instruction import InstructionType
+from CPU.instructionGenerator import InstructionGenerator
+from CPU.instruction import Instruction
+from CPU.instruction import InstructionType
 from Cache.cacheController import CacheController
 import time
 import threading
@@ -39,7 +39,7 @@ class CPU:
         elif instruction.instruction_type == InstructionType.READ:
             self.execute_read(instruction.address)
         elif instruction.instruction_type == InstructionType.WRITE:
-            self.execute_write(instruction.address)
+            self.execute_write(instruction.address, instruction.value)
 
     def execute_calculation(self):
         time.sleep(self.calculation_time)

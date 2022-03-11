@@ -54,14 +54,10 @@ class Cache:
             state = line.state
         return state
 
-    def overwrite_block(self, data: str, address: int, line_to_overwrite: CacheLine):
-        line_to_overwrite.set_data(data)
-        line_to_overwrite.set_address(address)
-
     def select_block_to_overwrite(self, address: int):
         set_number = address % 2
         memory_by_set = [line for line in self.memory if line.block_number // 2 == set_number]
-        memory_index = randint(0, 2)
+        memory_index = randint(0, 1)
         selected_block = memory_by_set[memory_index]
         return selected_block
 

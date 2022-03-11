@@ -23,7 +23,7 @@ class CacheController:
         state = self.cache.obtain_address_state(address)
         self.transition_by_cpu(state, CPUAction.WRITE, address, new_value)
 
-    def read_request(self, address):
+    def read_request(self, address: int):
         state = self.cache.obtain_address_state(address)
         data = self.transition_by_cpu(state, CPUAction.READ, address)
         return data
@@ -49,22 +49,21 @@ class CacheController:
             return self.transition_by_cpu_from_M(action, address, new_value)
 
     def transition_by_cpu_from_I(self, action: CPUAction, address: int, new_value: str = None):
+        block = self.cache.select_block_to_overwrite(address)
         if action == CPUAction.READ:
-            block = self.cache.select_block_to_overwrite(address)
             self.broadcast_read_miss(address)
             sharers_found = self.are_there_sharers(address)
             if not sharers_found:
                 self.ask_data_from_memory(address)
-                self.obtain_data_and_overwrite_existing_block(block, address)
-                block.set_state(State.E)
+                data = self.read_data_from_bus(address)
+                self.overwrite_existing_block(block, address, data, State.E)
             else:
-                self.obtain_data_and_overwrite_existing_block(block, address)
-                block.set_state(State.S)
+                data = self.read_data_from_bus(address)
+                self.overwrite_existing_block(block, address, data, State.S)
             return block.data
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address)
-            next_state = State.M
-            self.cache.write(address, new_value, next_state)
+            self.overwrite_existing_block(block, address, new_value, State.M)
 
     def transition_by_cpu_from_S(self, action: CPUAction, address: int, new_value: str = None):
         if action == CPUAction.READ:
@@ -182,10 +181,11 @@ class CacheController:
     def supply_data_to_bus(self, address: int, data: str, destination: int):
         self.send_message_to_bus(MessageType.DATA_RESPONSE, address, data=data)
 
-    def obtain_data_and_overwrite_existing_block(self, block: CacheLine, address: int):
-        data = self.read_data_from_bus(address)
+    def overwrite_existing_block(self, block: CacheLine, address: int, data: str, state: State):
         self.evict(block)
-        self.cache.overwrite_block(data, address, block)
+        block.set_state(state)
+        block.set_address(address)
+        block.set_data(data)
 
     def read_data_from_bus(self, address: int):
         message = self.await_message_from_bus(MessageType.DATA_RESPONSE, address)

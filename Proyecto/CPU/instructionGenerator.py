@@ -1,7 +1,7 @@
 import numpy as np
 import math
-from instruction import InstructionType
-from instruction import Instruction
+from CPU.instruction import InstructionType
+from CPU.instruction import Instruction
 
 
 # TODO: Replace the random generators
@@ -16,8 +16,8 @@ class InstructionGenerator:
 
     def generate_instruction(self) -> Instruction:
         operation = self.select_instruction()
-        address = None
-        value = None
+        address: int | None = None
+        value: str | None = None
         if operation == InstructionType.CALC:
             pass
         elif operation == InstructionType.READ:
@@ -33,9 +33,9 @@ class InstructionGenerator:
         operation_index = int(sample)
         return self.operations[operation_index]
 
-    def select_address(self) -> str:
-        sample = np.random.uniform(low=0, high=2, size=self.blocks_bits)
-        address = ''.join([str(int(i)) for i in sample])
+    def select_address(self) -> int:
+        sample = np.random.uniform(low=0, high=2**self.blocks_bits)
+        address = int(sample)
         return address
 
     def select_new_value(self) -> str:

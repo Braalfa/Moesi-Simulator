@@ -24,7 +24,9 @@ class Bus:
 
     def process_next_message(self):
         message = self.get_next_message()
-        if message.message_type == MessageType.REQUEST_FROM_MEMORY:
+        if message is None:
+            pass
+        elif message.message_type == MessageType.REQUEST_FROM_MEMORY:
             self.deliver_data_from_memory(message)
         elif message.message_type == MessageType.WRITE_BACK:
             self.main_memory.write(message.address, message.data)
@@ -41,7 +43,10 @@ class Bus:
         self.queue.append(message)
 
     def get_next_message(self):
-        return self.queue.pop(0)
+        try:
+            return self.queue.pop(0)
+        except IndexError:
+            return None
 
     def deliver_data_from_memory(self, incoming_message):
         data = self.main_memory.read(incoming_message.address)
