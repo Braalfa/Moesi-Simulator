@@ -1,9 +1,9 @@
-from messaging import Message
-from messaging import MessageType
-from cacheL1 import Cache
+from Communication.messaging import Message
+from Communication.messaging import MessageType
 from mainMemory import MainMemory
 
 
+# TODO: READ MESSAGES FROM THE CACHES
 class Bus:
     def __init__(self, caches, main_memory: MainMemory):
         self.queue = []
