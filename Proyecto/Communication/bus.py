@@ -1,13 +1,14 @@
 from Communication.messaging import Message
 from Communication.messaging import MessageType
 from mainMemory import MainMemory
+from Cache.cacheController import CacheController
 
 
 # TODO: READ MESSAGES FROM THE CACHES
 class Bus:
-    def __init__(self, caches, main_memory: MainMemory):
+    def __init__(self, cache_controllers: [CacheController], main_memory: MainMemory):
         self.queue = []
-        self.caches = caches
+        self.cache_controllers = cache_controllers
         self.main_memory = main_memory
 
     def add_message(self, message: Message):
@@ -37,9 +38,8 @@ class Bus:
 
     def obtain_cache_destinations(self, message: Message):
         if message.message_type == MessageType.READ_MISS \
-                or message.message_type == MessageType.WRITE_MISS \
-                or message.message_type == MessageType.WRITE_MISS_2:
-            cache_destinations = [cache for cache in self.caches]
+                or message.message_type == MessageType.WRITE_MISS:
+            cache_destinations = [cache for cache in self.cache_controllers]
         else:
-            cache_destinations = self.caches[message.destination]
+            cache_destinations = self.cache_controllers[message.destination]
         return cache_destinations

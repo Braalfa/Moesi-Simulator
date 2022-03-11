@@ -20,18 +20,25 @@ class Cache:
             CacheLine(i, State.I, 0, "0000") for i in range(self.capacity)
         ]
 
-    def read_from_cache(self, address, next_state):
+    def read(self, address: int):
+        block = self.find_line_in_cache(address)
+        return block.data
+
+    def read_and_update_state(self, address: int, next_state: State):
         block = self.find_line_in_cache(address)
         block.state = next_state
         return block.data
 
-    def write_to_cache(self, address: int, new_value: str, next_state):
-        self.delay()
+    def write(self, address: int, new_value: str, next_state: State):
         line = self.find_line_in_cache(address)
         line.data = new_value
         line.state = next_state
 
-    def obtain_address_state(self, address):
+    def update_state(self, address: int, next_state: State):
+        block = self.find_line_in_cache(address)
+        block.state = next_state
+
+    def obtain_address_state(self, address: int):
         line = self.find_line_in_cache(address)
         if line is None:
             state = State.I
