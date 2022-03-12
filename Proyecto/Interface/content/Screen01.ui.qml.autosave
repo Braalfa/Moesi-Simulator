@@ -1314,6 +1314,8 @@ Rectangle {
             id: continue_btn
             width: 46
             height: 40
+            checked: false
+            display: AbstractButton.TextBesideIcon
             activeFocusOnTab: false
             focus: false
             antialiasing: false
