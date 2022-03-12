@@ -17,12 +17,12 @@ class Instruction:
 
     def __str__(self):
         string = "P" + str(self.processor_number)
-        string += " " + str(self.instruction_type)
+        string += " instruction type: " + str(self.instruction_type)
         if self.instruction_type == InstructionType.CALC:
             pass
         elif self.instruction_type == InstructionType.READ:
-            string += " address" + str(self.address)
+            string += " address: " + str(self.address)
         elif self.instruction_type == InstructionType.WRITE:
-            string += " address" + str(self.address)
-            string += " value" + self.value
+            string += " address: " + str(self.address)
+            string += " value: " + self.value
         return string

@@ -1,3 +1,4 @@
+import logging
 from Communication.messaging import Message
 from Communication.messaging import MessageType
 from mainMemory import MainMemory
@@ -6,11 +7,12 @@ import threading
 
 
 class Bus:
-    def __init__(self, cache_controllers: [CacheController], main_memory: MainMemory):
+    def __init__(self, cache_controllers: [CacheController], main_memory: MainMemory, logger: logging.Logger):
         self.queue = []
         self.cache_controllers = cache_controllers
         self.main_memory = main_memory
         self.execute_flag = True
+        self.logger = logger
 
     def start_execution(self):
         thread = threading.Thread(target=self.run, args=())
@@ -39,6 +41,8 @@ class Bus:
             message = cache_controller.return_next_send_message()
             if message is not None:
                 self.add_message(message)
+                self.logger.info("Received message from cache: " + str(cache_controller.cache.cache_number)
+                                 + " message: " + message.__str__())
 
     def add_message(self, message: Message):
         self.queue.append(message)
@@ -61,11 +65,14 @@ class Bus:
         cache_destinations = self.obtain_cache_destinations(message)
         for cache_destination in cache_destinations:
             cache_destination.receive_message_from_bus(message)
+            self.logger.info("Sent message to cache: " + str(cache_destination.cache.cache_number)
+                             + " message: " + message.__str__())
 
     def obtain_cache_destinations(self, message: Message):
         if message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
-            cache_destinations = [cache for cache in self.cache_controllers if cache.cache.cache_number != message.origin]
+            cache_destinations = [cache_controller for cache_controller in self.cache_controllers
+                                  if cache_controller.cache.cache_number != message.origin]
         else:
             cache_destinations = [self.cache_controllers[message.destination]]
         return cache_destinations

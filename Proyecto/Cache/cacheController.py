@@ -6,6 +6,7 @@ from Communication.messaging import Message
 from Communication.messaging import MessageType
 import time
 import logging
+from threading import Lock
 
 
 class CacheController:
@@ -14,6 +15,7 @@ class CacheController:
         self.received_messages_queue = []
         self.send_messages_queue = []
         self.logger = logger
+        self.lock = Lock()
 
     def return_next_send_message(self):
         try:
@@ -22,25 +24,31 @@ class CacheController:
             return None
 
     def write_request(self, address: int, new_value: str):
+        self.lock.acquire()
         state = self.cache.obtain_address_state(address)
         self.transition_by_cpu(state, CPUAction.WRITE, address, new_value)
+        self.lock.release()
 
     def read_request(self, address: int):
+        self.lock.acquire()
         state = self.cache.obtain_address_state(address)
         data = self.transition_by_cpu(state, CPUAction.READ, address)
+        self.lock.release()
         return data
 
     def receive_message_from_bus(self, message: Message):
-        self.logger.info("cache " + str(self.cache.cache_number) + " message from bus; message:" + message.__str__())
+        self.logger.info("Message received from bus; message:" + message.__str__() + " Queue has " + + " elements")
         if message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
+            self.lock.acquire()
             self.transition_by_bus(message)
+            self.lock.release()
         else:
             self.received_messages_queue.append(message)
 
     def transition_by_cpu(self, current_state: State,
                           action: CPUAction, address: int, new_value: str = None):
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by cpu ; current state: " + str(current_state))
+        self.logger.info("Transition by cpu; current state: " + str(current_state))
         if current_state == State.I:
             return self.transition_by_cpu_from_I(action, address, new_value)
         elif current_state == State.S:
@@ -59,7 +67,7 @@ class CacheController:
             sharers_found = self.are_there_sharers(address)
             if not sharers_found:
                 self.ask_data_from_memory(address)
-                data = self.read_data_from_bus(address)
+                data = self.read_memory_response_from_bus(address)
                 next_state = State.E
                 self.overwrite_existing_block(block, address, data, next_state)
             else:
@@ -73,7 +81,7 @@ class CacheController:
             self.broadcast_write_miss(address)
             next_state = State.M
             self.overwrite_existing_block(block, address, new_value, next_state)
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by cpu ; next_state: " + str(next_state))
+        self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_S(self, action: CPUAction, address: int, new_value: str = None):
         if action == CPUAction.READ:
@@ -83,7 +91,7 @@ class CacheController:
             self.broadcast_write_miss(address)
             next_state = State.M
             self.cache.write(address, new_value, next_state)
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by cpu ; next_state: " + str(next_state))
+        self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_E(self, action: CPUAction, address: int, new_value: str = None):
         if action == CPUAction.READ:
@@ -92,7 +100,7 @@ class CacheController:
         elif action == CPUAction.WRITE:
             next_state = State.M
             self.cache.write(address, new_value, next_state)
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by cpu ; next_state: " + str(next_state))
+        self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_O(self, action: CPUAction, address: int, new_value: str = None):
         if action == CPUAction.READ:
@@ -102,7 +110,7 @@ class CacheController:
             next_state = State.M
             self.broadcast_write_miss(address)
             self.cache.write(address, new_value, next_state)
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by cpu ; next_state: " + str(next_state))
+        self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_M(self, action: CPUAction, address: int, new_value: str = None):
         if action == CPUAction.READ:
@@ -111,12 +119,13 @@ class CacheController:
         elif action == CPUAction.WRITE:
             next_state = State.M
             self.cache.write(address, new_value, next_state)
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by cpu ; next_state: " + str(next_state))
+        self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_bus(self, message: Message):
         current_state = self.cache.obtain_address_state(message.address)
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by bus ; current state: " + str(current_state))
+        self.logger.info("Transition by bus ; current state: " + str(current_state))
         if current_state == State.I:
+            self.logger.info("Transition by bus; next_state: " + str(State.I))
             pass
         elif current_state == State.S:
             return self.transition_by_bus_from_S(message)
@@ -135,7 +144,7 @@ class CacheController:
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
             self.cache.write_state(message.address, next_state)
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by bus ; next_state: " + str(next_state))
+        self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def transition_by_bus_from_E(self, message: Message):
         if message.message_type == MessageType.READ_MISS:
@@ -146,7 +155,7 @@ class CacheController:
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
             self.cache.write_state(message.address, next_state)
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by bus ; next_state: " + str(next_state))
+        self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def transition_by_bus_from_O_and_M(self, message: Message):
         if message.message_type == MessageType.READ_MISS:
@@ -158,10 +167,10 @@ class CacheController:
             next_state = State.I
             self.cache.write_state(message.address, next_state)
 
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " transition by bus ; next_state: " + str(next_state))
+        self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def evict(self, line: CacheLine):
-        self.logger.info("Cache: " + str(self.cache.cache_number) + " evicting: " + str(line.address))
+        self.logger.info("Evicting; block number: " + str(line.block_number) + " address: " + str(line.address))
         current_state = line.state
         if current_state == State.I:
             line.set_state(State.I)
@@ -212,7 +221,17 @@ class CacheController:
         if message is not None:
             return message.data
         else:
+            self.logger.error("No data was received from the caches")
             return None
+
+    def read_memory_response_from_bus(self, address: int):
+        message = self.await_message_from_bus(MessageType.DATA_RESPONSE, address, max_time=30)
+        if message is not None:
+            return message.data
+        else:
+            self.logger.error("The memory didn't respond")
+            return None
+
 
     # TODO: Adjust time
     def await_message_from_bus(self, message_type: MessageType,
@@ -227,6 +246,6 @@ class CacheController:
         return None
 
     def send_message_to_bus(self, message_type: MessageType, address: int, destination=None, data=None):
-        message = Message(message_type, self.cache.cache_number, destination, address, data)
-        self.logger.info("cache " + str(self.cache.cache_number) + " message to bus; message: " + message.__str__())
+        message = Message(message_type, self.cache.cache_number, destination=destination, address=address, data=data)
+        self.logger.info("Message sent to bus; message: " + message.__str__())
         self.send_messages_queue.append(message)

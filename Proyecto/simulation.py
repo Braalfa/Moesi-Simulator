@@ -39,7 +39,9 @@ class Simulation:
             self.cache_controllers.append(cache_controller)
             self.cpus.append(cpu)
 
-        self.bus = Bus(self.cache_controllers, self.main_memory)
+        logger = setup_logger("bus_logger",  'bus.log')
+
+        self.bus = Bus(self.cache_controllers, self.main_memory, logger)
 
     def execute(self):
         self.bus.start_execution()

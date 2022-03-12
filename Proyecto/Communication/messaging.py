@@ -27,5 +27,7 @@ class Message:
             string += " destination:" + str(self.destination)
         if self.data is not None:
             string += " data:" + self.data
+        if self.address is not None:
+            string += " address:" + str(self.address)
         return string
 

@@ -31,7 +31,7 @@ class CPU:
         while self.execute_flag:
             self.logger.info("Running on processor " + str(self.processor_number))
             instruction = self.obtain_next_instruction()
-            self.logger.info("Instruction on processor " + str(self.processor_number) + " instruction " + instruction.__str__())
+            self.logger.info("Instruction on processor: " + str(self.processor_number) + " instruction: " + instruction.__str__())
             self.execute_instruction(instruction)
 
     def obtain_next_instruction(self) -> Instruction:
