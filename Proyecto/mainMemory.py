@@ -2,7 +2,7 @@ import time
 
 
 class MainMemory:
-    def __init__(self, delay_time: int = 1):
+    def __init__(self, delay_time: int = 2):
         self.capacity = 8
         self.delay_time = delay_time
         self.memory = ["0x0000" for _ in range(self.capacity)]

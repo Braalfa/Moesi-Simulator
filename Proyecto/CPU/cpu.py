@@ -21,7 +21,6 @@ class CPU:
         self.execute_flag = True
         self.logger = logger
 
-
     def start_execution(self):
         thread = threading.Thread(target=self.run, args=())
         thread.start()

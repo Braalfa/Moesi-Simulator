@@ -16,6 +16,8 @@ class CacheController:
         self.send_messages_queue = []
         self.logger = logger
         self.lock = Lock()
+        self.messages_received = 0
+        self.messages_accepted = 0
 
     def return_next_send_message(self):
         try:
@@ -37,13 +39,17 @@ class CacheController:
         return data
 
     def receive_message_from_bus(self, message: Message):
-        self.logger.info("Message received from bus; message:" + message.__str__() + " Queue has " + + " elements")
+        self.logger.info("Message received from bus; message:" + message.__str__())
+        self.logger.info("Accepted msgs: " + str(self.messages_received) + "Received msgs: " + str(self.messages_accepted))
+        self.messages_received += 1
         if message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
             self.lock.acquire()
+            self.messages_accepted += 1
             self.transition_by_bus(message)
             self.lock.release()
         else:
+            self.messages_accepted += 1
             self.received_messages_queue.append(message)
 
     def transition_by_cpu(self, current_state: State,
@@ -212,9 +218,7 @@ class CacheController:
 
     def overwrite_existing_block(self, block: CacheLine, address: int, data: str, state: State):
         self.evict(block)
-        block.set_state(state)
-        block.set_address(address)
-        block.set_data(data)
+        self.cache.overwrite_block(block, address, data, state)
 
     def read_data_from_bus(self, address: int):
         message = self.await_message_from_bus(MessageType.DATA_RESPONSE, address)

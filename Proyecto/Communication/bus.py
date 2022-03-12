@@ -64,7 +64,8 @@ class Bus:
     def deliver_message_to_caches(self, message: Message):
         cache_destinations = self.obtain_cache_destinations(message)
         for cache_destination in cache_destinations:
-            cache_destination.receive_message_from_bus(message)
+            thread = threading.Thread(target=cache_destination.receive_message_from_bus, args=(message,))
+            thread.start()
             self.logger.info("Sent message to cache: " + str(cache_destination.cache.cache_number)
                              + " message: " + message.__str__())
 

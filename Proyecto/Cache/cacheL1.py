@@ -31,21 +31,31 @@ class Cache:
 
     def read(self, address: int):
         block = self.find_line_in_cache(address)
+        time.sleep(1)
         return block.data
 
     def read_and_update_state(self, address: int, next_state: State):
         block = self.find_line_in_cache(address)
         block.set_state(next_state)
+        time.sleep(1)
         return block.data
 
     def write(self, address: int, new_value: str, next_state: State):
         line = self.find_line_in_cache(address)
         line.set_data(new_value)
         line.set_state(next_state)
+        time.sleep(1)
+
+    def overwrite_block(self, block: CacheLine, address: int, data: str, state: State):
+        block.set_state(state)
+        block.set_address(address)
+        block.set_data(data)
+        time.sleep(1)
 
     def write_state(self, address: int, next_state: State):
         block = self.find_line_in_cache(address)
         block.set_state(next_state)
+        time.sleep(0.5)
 
     def obtain_address_state(self, address: int):
         line = self.find_line_in_cache(address)
