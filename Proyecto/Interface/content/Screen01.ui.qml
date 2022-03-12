@@ -5,14 +5,14 @@ this file manually, you might introduce QML code that is not supported by Qt Des
 Check out https://doc.qt.io/qtcreator/creator-quick-ui-forms.html for details on .ui.qml files.
 */
 
-import QtQuick
-import QtQuick.Controls
-import Interface
+import QtQuick 2.6
+import QtQuick.Controls 2.6
+import "../Interface" as Interface
 
 Rectangle {
     id: rectangle
-    width: Constants.width
-    height: Constants.height
+    width: 1920
+    height: 1080
     color: "#ffffff"
     
     

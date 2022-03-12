@@ -27,9 +27,9 @@
 **
 ****************************************************************************/
 
-import QtQuick
-import QtQuick.Window
-import Interface
+import QtQuick 2.6
+import QtQuick.Window 2.6
+import "../Interface" as Interface
 
 Window {
     width: mainScreen.width
