@@ -92,14 +92,6 @@ Rectangle {
     property alias data_memory5_text:data_memory_5.text
     property alias data_memory6_text:data_memory_6.text
     property alias data_memory7_text:data_memory_7.text
-    property alias data_memory8_text:data_memory_8.text
-    property alias data_memory9_text:data_memory_9.text
-    property alias data_memory10_text:data_memory_10.text
-    property alias data_memory11_text:data_memory_11.text
-    property alias data_memory12_text:data_memory_12.text
-    property alias data_memory13_text:data_memory_13.text
-    property alias data_memory14_text:data_memory_14.text
-    property alias data_memory15_text:data_memory_15.text
 
     property alias instruction_input_text:instruction_input.text
 
@@ -1029,9 +1021,9 @@ Rectangle {
     
     Grid {
         id: memory_grid
-        x: 449
-        y: 900
-        width: 1009
+        x: 655
+        y: 904
+        width: 543
         height: 91
         opacity: 1
         visible: true
@@ -1156,102 +1148,6 @@ Rectangle {
             font.pixelSize: 19
         }
         
-        Text {
-            id: direction_memory_8
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: data_memory_8
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: direction_memory_9
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: data_memory_9
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: direction_memory_10
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: data_memory_10
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: direction_memory_11
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: data_memory_11
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: direction_memory_12
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: data_memory_12
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: direction_memory_13
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: data_memory_13
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: direction_memory_14
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: data_memory_14
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: direction_memory_15
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
-        Text {
-            id: data_memory_15
-            text: qsTr("Text")
-            font.pixelSize: 19
-        }
-        
         rows: 2
         smooth: true
         clip: false
@@ -1317,6 +1213,7 @@ Rectangle {
             id: continue_btn
             width: 46
             height: 40
+            visible: true
             checked: false
             display: AbstractButton.TextBesideIcon
             activeFocusOnTab: false
@@ -1377,6 +1274,7 @@ Rectangle {
             width: 46
             height: 40
             opacity: 1
+            visible: false
             enabled: true
             flat: false
             objectName: "stop_btn"
