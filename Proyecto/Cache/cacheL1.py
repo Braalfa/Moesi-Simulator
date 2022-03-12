@@ -28,7 +28,7 @@ class CacheLine:
 class Cache:
     def __init__(self, cache_number, delay_time: int = 1):
         self.cache_number = cache_number
-        self.capacity = 8
+        self.capacity = 4
         self.delay_time = delay_time
         self.memory = [
             CacheLine(i, State.I, 0, "0000") for i in range(self.capacity)

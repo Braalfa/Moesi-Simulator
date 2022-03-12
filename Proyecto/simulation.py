@@ -26,6 +26,8 @@ def setup_logger(name, log_file, level=logging.INFO):
 class Simulation:
     def __init__(self):
         self.number_of_cpus = 4
+        self.number_of_blocks_per_cache = 4
+        self.number_of_memory_lines = 8
         self.main_memory = MainMemory()
         self.cache_controllers = []
         self.cpus = []
@@ -56,8 +58,8 @@ class Simulation:
     def get_cpu_instruction(self, cpu_number: int) -> Instruction:
         return self.cpus[cpu_number].most_recent_instruction
 
-    def cpu_set_instruction(self, cpu_number: int, next_instruction: Instruction):
-        self.cpus[cpu_number].set_next_instruction(next_instruction)
+    def set_next_instruction(self, next_instruction: Instruction):
+        self.cpus[next_instruction.processor_number].set_next_instruction(next_instruction)
 
     def start_execution(self):
         for cpu in self.cpus:
