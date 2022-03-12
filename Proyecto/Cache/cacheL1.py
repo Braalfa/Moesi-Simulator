@@ -19,6 +19,11 @@ class CacheLine:
     def set_data(self, data: str):
         self.data = data
 
+    def get_address_as_4_bits(self) -> str:
+        binary_string = bin(self.address)
+        binary_string_4_bits = ''.join(['0' for i in range(4 - len(binary_string[2:]))]) + binary_string[2:]
+        return binary_string_4_bits
+
 
 class Cache:
     def __init__(self, cache_number, delay_time: int = 1):

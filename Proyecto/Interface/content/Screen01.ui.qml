@@ -101,6 +101,9 @@ Rectangle {
     property alias data_memory14_text:data_memory_14.text
     property alias data_memory15_text:data_memory_15.text
 
+    property alias instruction_input_text:instruction_input.text
+
+    signal buttonClick(string buttonId);
 
 
     Text {
@@ -1314,13 +1317,16 @@ Rectangle {
             id: continue_btn
             width: 46
             height: 40
+            checked: false
+            display: AbstractButton.TextBesideIcon
             activeFocusOnTab: false
             focus: false
             antialiasing: false
             smooth: false
             enabled: true
             flat: false
-            
+            objectName: "continue_btn"
+
             BorderImage {
                 id: borderImage
                 height: 32
@@ -1339,6 +1345,8 @@ Rectangle {
                 anchors.topMargin: 0
                 horizontalTileMode: BorderImage.Round
             }
+
+
         }
         
         Button {
@@ -1346,6 +1354,7 @@ Rectangle {
             width: 46
             height: 40
             flat: false
+            objectName: "step_btn"
             BorderImage {
                 id: borderImage1
                 height: 32
@@ -1370,6 +1379,7 @@ Rectangle {
             opacity: 1
             enabled: true
             flat: false
+            objectName: "stop_btn"
             BorderImage {
                 id: borderImage2
                 height: 32

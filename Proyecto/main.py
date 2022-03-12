@@ -1,4 +1,5 @@
 from simulation import Simulation
+from Interface import *
 
 def main():
     simulation = Simulation()

@@ -20,7 +20,7 @@ class CPU:
         self.calculation_time = calculation_time
         self.logger = logger
         self.most_recent_instruction = ""
-        self.execute_continually = True
+        self.execute_continually = False
         self.execute_once = False
         self.next_instruction = None
 
