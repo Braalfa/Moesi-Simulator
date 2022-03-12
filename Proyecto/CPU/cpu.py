@@ -18,8 +18,20 @@ class CPU:
                                                            number_of_memory_blocks=number_of_memory_blocks,
                                                            block_width_hexadecimal=block_width_hexadecimal)
         self.calculation_time = calculation_time
-        self.execute_flag = True
         self.logger = logger
+        self.most_recent_instruction = ""
+        self.execute_continually = True
+        self.execute_once = False
+        self.next_instruction = None
+
+    def stop_execution(self):
+        self.execute_continually = False
+
+    def execute_once(self):
+        self.execute_once = True
+
+    def set_next_instruction(self, next_instruction):
+        self.next_instruction = next_instruction
 
     def start_execution(self):
         thread = threading.Thread(target=self.run, args=())
@@ -27,14 +39,31 @@ class CPU:
         return thread
 
     def run(self):
-        while self.execute_flag:
+        while self.should_execute():
             self.logger.info("Running on processor " + str(self.processor_number))
             instruction = self.obtain_next_instruction()
             self.logger.info("Instruction on processor: " + str(self.processor_number) + " instruction: " + instruction.__str__())
+            self.update_most_recent_instruction(instruction)
             self.execute_instruction(instruction)
 
+    def should_execute(self):
+        if self.execute_continually:
+            return True
+        elif self.execute_once:
+            self.execute_once = False
+            return True
+        else:
+            return False
+
+    def update_most_recent_instruction(self, instruction):
+        self.most_recent_instruction = instruction
+
     def obtain_next_instruction(self) -> Instruction:
-        next_instruction = self.instructions_generator.generate_instruction()
+        if self.next_instruction is not None:
+            next_instruction = self.instructions_generator.generate_instruction()
+        else:
+            next_instruction = self.next_instruction
+            self.next_instruction = None
         return next_instruction
 
     def execute_instruction(self, instruction: Instruction):

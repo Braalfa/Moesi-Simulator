@@ -18,6 +18,7 @@ class CacheController:
         self.lock = Lock()
         self.messages_received = 0
         self.messages_accepted = 0
+        self.current_process = "Idle"
 
     def return_next_send_message(self):
         try:
@@ -25,16 +26,29 @@ class CacheController:
         except IndexError:
             return None
 
+    def switch_process_status_to_working_by_cpu(self):
+        self.current_process = "Working on cpu request"
+
+    def switch_process_status_to_working_by_bus(self):
+        self.current_process = "Working on bus request"
+
+    def switch_process_status_to_idle(self):
+        self.current_process = "Idle"
+
     def write_request(self, address: int, new_value: str):
         self.lock.acquire()
+        self.switch_process_status_to_working_by_cpu()
         state = self.cache.obtain_address_state(address)
         self.transition_by_cpu(state, CPUAction.WRITE, address, new_value)
+        self.switch_process_status_to_idle()
         self.lock.release()
 
     def read_request(self, address: int):
         self.lock.acquire()
+        self.switch_process_status_to_working_by_cpu()
         state = self.cache.obtain_address_state(address)
         data = self.transition_by_cpu(state, CPUAction.READ, address)
+        self.switch_process_status_to_idle()
         self.lock.release()
         return data
 
@@ -45,8 +59,10 @@ class CacheController:
         if message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
             self.lock.acquire()
+            self.switch_process_status_to_working_by_bus()
             self.messages_accepted += 1
             self.transition_by_bus(message)
+            self.switch_process_status_to_idle()
             self.lock.release()
         else:
             self.messages_accepted += 1
