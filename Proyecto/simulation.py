@@ -36,10 +36,11 @@ class Simulation:
             cache: Cache = Cache(i)
             cache_controller: CacheController = CacheController(cache, logger)
             cpu = CPU(i, cache_controller, logger)
+            cpu.start_execution()
 
             self.cache_controllers.append(cache_controller)
             self.cpus.append(cpu)
-
+            
         logger = setup_logger("bus_logger",  'bus.log')
 
         self.bus = Bus(self.cache_controllers, self.main_memory, logger)
@@ -59,9 +60,9 @@ class Simulation:
     def set_next_instruction(self, next_instruction: Instruction):
         self.cpus[next_instruction.processor_number].set_next_instruction(next_instruction)
 
-    def start_execution(self):
+    def continue_execution(self):
         for cpu in self.cpus:
-            cpu.start_execution()
+            cpu.continue_execution()
 
     def stop_execution(self):
         for cpu in self.cpus:

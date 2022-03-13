@@ -77,7 +77,7 @@ class WindowsController:
             instruction_property = "last_execution" + str(i) + "_text"
             current_process_property = "current_process" + str(i) + "_text"
             self.root.setProperty(instruction_property, self.simulation.get_cpu_instruction(i))
-            #self.root.setProperty(current_process_property, self.simulation.get_cache_status(i))
+            self.root.setProperty(current_process_property, self.simulation.get_cache_status(i))
             cache_content = self.simulation.get_cache_content(i)
             for j in range(self.simulation.number_of_blocks_per_cache):
                 cache_line: CacheLine = cache_content[j]
@@ -103,7 +103,7 @@ class WindowsController:
         self.step_button.setProperty("visible", False)
         self.stop_button.setProperty("visible", True)
         self.assign_next_instruction()
-        self.simulation.start_execution()
+        self.simulation.continue_execution()
 
     def step_clicked(self):
         self.continue_button.setProperty("visible", True)
