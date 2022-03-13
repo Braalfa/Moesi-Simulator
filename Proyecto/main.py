@@ -7,9 +7,7 @@ def main():
     simulation = Simulation()
     simulation.execute()
     window_controller = WindowsController(simulation)
-    thread = threading.Thread(target=window_controller.start_window, args=())
-    thread.start()
-    thread.join()
+    window_controller.run()
 
 
 if __name__ == '__main__':

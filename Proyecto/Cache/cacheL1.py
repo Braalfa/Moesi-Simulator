@@ -1,4 +1,5 @@
 import time
+from enum import Enum
 from random import randint
 from Enums.stateEnum import State
 
@@ -18,6 +19,9 @@ class CacheLine:
 
     def set_data(self, data: str):
         self.data = data
+
+    def get_state_as_string(self):
+        return self.state.name
 
     def get_address_as_4_bits(self) -> str:
         binary_string = bin(self.address)

@@ -1,5 +1,9 @@
 import sys
-from PyQt5.QtCore import QVariant, QObject
+import threading
+from enum import Enum
+
+from PyQt5.QtCore import pyqtSignal, QThread
+from PyQt5.QtCore import QObject
 from PyQt5.QtGui import QGuiApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 import time
@@ -8,63 +12,86 @@ from simulation import Simulation
 from CPU.instruction import Instruction
 
 
+class UpdatesWorker(QObject):
+    update_signal = pyqtSignal()
+    finished = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        self.continue_flag = True
+    
+    def run(self):
+        while self.continue_flag:
+            self.update_signal.emit()
+            time.sleep(0.2)
+        self.finished.emit()
+
 class WindowsController:
     def __init__(self, simulation: Simulation):
         self.simulation = simulation
-        self.qml_path = 'content/App.qml'
+        self.qml_path = 'Interface/content/App.qml'
         self.root = None
         self.app = None
         self.continue_button = None
         self.step_button = None
         self.stop_button = None
         self.continue_flag = True
+        self.engine = None
+        self.update_thread = None
+        self.update_worker = None
 
     def run(self):
+        self.app = QGuiApplication(sys.argv)
         self.start_window()
-        self.configure()
-        self.update_cycle()
+        self.configure_buttons()
+        self.start_updates()
+        sys.exit(self.app.exec())
+
+    def start_updates(self):
+        self.update_thread = QThread()
+        self.update_worker = UpdatesWorker()
+        self.update_worker.moveToThread(self.update_thread)
+        self.update_thread.started.connect(self.update_worker.run)
+        self.update_worker.finished.connect(self.update_thread.quit)
+        self.update_worker.finished.connect(self.update_worker.deleteLater)
+        self.update_thread.finished.connect(self.update_thread.deleteLater)
+        self.update_worker.update_signal.connect(self.update_values)
+        self.update_thread.start()
 
     def start_window(self):
-        engine = QQmlApplicationEngine()
-        engine.quit.connect(self.app.quit)
-        engine.load(self.qml_path)
-        root_object = engine.rootObjects()[0]
+        self.engine = QQmlApplicationEngine()
+        self.engine.quit.connect(self.app.quit)
+        self.engine.load(self.qml_path)
+        root_object = self.engine.rootObjects()[0]
         rectangle = root_object.children()[1]
         self.root = rectangle
 
-    def configure(self):
-        self.app = QGuiApplication(sys.argv)
-        self.qml_path = 'content/App.qml'
+    def configure_buttons(self):
         self.continue_button = self.root.findChild(QObject, "continue_btn")
         self.step_button = self.root.findChild(QObject, "step_btn")
         self.stop_button = self.root.findChild(QObject, "stop_btn")
         self.setup_buttons()
 
-    def update_cycle(self):
-        while self.continue_flag:
-            self.update_values()
-            time.sleep(0.1)
-
     def update_values(self):
         for i in range(self.simulation.number_of_cpus):
             instruction_property = "last_execution" + str(i) + "_text"
             current_process_property = "current_process" + str(i) + "_text"
-            self.root.setProperty(instruction_property, QVariant(self.simulation.get_cpu_instruction(i)))
-            self.root.setProperty(current_process_property, QVariant(self.simulation.get_cache_status(i)))
+            self.root.setProperty(instruction_property, self.simulation.get_cpu_instruction(i))
+            #self.root.setProperty(current_process_property, self.simulation.get_cache_status(i))
             cache_content = self.simulation.get_cache_content(i)
             for j in range(self.simulation.number_of_blocks_per_cache):
                 cache_line: CacheLine = cache_content[j]
                 data_property = "data" + str(j) + "_" + str(i) + "_text"
                 address_property = "address" + str(j) + "_" + str(i) + "_text"
                 state_property = "state" + str(j) + "_" + str(i) + "_text"
-                self.root.setProperty(data_property, QVariant(cache_line.data))
-                self.root.setProperty(address_property, QVariant(cache_line.get_address_as_4_bits()))
-                self.root.setProperty(state_property, QVariant(cache_line.state))
+                self.root.setProperty(data_property, cache_line.data)
+                self.root.setProperty(address_property, cache_line.get_address_as_4_bits())
+                self.root.setProperty(state_property, cache_line.get_state_as_string())
 
         memory_contents = self.simulation.get_memory_content()
         for i in range(self.simulation.number_of_memory_lines):
             memory_property = "data_memory" + str(i) + "_text"
-            self.root.setProperty(memory_property, QVariant(memory_contents[i]))
+            self.root.setProperty(memory_property, memory_contents[i])
 
     def setup_buttons(self):
         self.continue_button.clicked.connect(self.continue_clicked)
@@ -107,24 +134,3 @@ class WindowsController:
 
     def continue_executing(self):
         sys.exit(self.app.exec())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

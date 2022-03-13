@@ -5,8 +5,6 @@ from Communication.bus import Bus
 from Cache.cacheController import CacheController
 from CPU.instruction import Instruction
 import logging
-
-import logging
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
 
