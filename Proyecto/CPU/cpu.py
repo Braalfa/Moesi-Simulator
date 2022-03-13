@@ -19,7 +19,7 @@ class CPU:
                                                            block_width_hexadecimal=block_width_hexadecimal)
         self.calculation_time = calculation_time
         self.logger = logger
-        self.most_recent_instruction = ""
+        self.most_recent_instruction: Instruction | None = None
         self.execute_continually = False
         self.execute_once = False
         self.next_instruction = None
@@ -28,7 +28,7 @@ class CPU:
     def stop_execution(self):
         self.execute_continually = False
 
-    def execute_once(self):
+    def step_execution(self):
         self.execute_once = True
 
     def continue_execution(self):
@@ -87,3 +87,10 @@ class CPU:
 
     def execute_write(self, address: int, new_value: str):
         self.cache_controller.write_request(address, new_value)
+
+    def get_most_recent_instruction_as_string(self):
+        if self.most_recent_instruction is not None:
+            return self.most_recent_instruction.as_string_instruction()
+        else:
+            return ''
+        

@@ -21,7 +21,7 @@ class Instruction:
         iterator = iter(instruction_components)
 
         processor_string = next(iterator)
-        processor_number = int(processor_string[2:])
+        processor_number = int(processor_string[1:])
         instruction_type_string = next(iterator)
         instruction_type = InstructionType[instruction_type_string]
 
@@ -46,7 +46,7 @@ class Instruction:
 
     def __str__(self):
         string = "P" + str(self.processor_number)
-        string += " instruction type: " + str(self.instruction_type)
+        string += " " + self.instruction_type.name
         if self.instruction_type == InstructionType.CALC:
             pass
         elif self.instruction_type == InstructionType.READ:
@@ -55,3 +55,21 @@ class Instruction:
             string += " address: " + str(self.address)
             string += " value: " + self.value
         return string
+
+    def as_string_instruction(self) -> str:
+        string = "P" + str(self.processor_number)
+        string += " " + self.instruction_type.name
+        if self.instruction_type == InstructionType.CALC:
+            pass
+        elif self.instruction_type == InstructionType.READ:
+            string += " " + self.get_address_as_4_bits(self.address)
+        elif self.instruction_type == InstructionType.WRITE:
+            string += " " + self.get_address_as_4_bits(self.address)
+            string += " " + self.value
+        return string
+
+    @staticmethod
+    def get_address_as_4_bits(address: int) -> str:
+        binary_string = bin(address)
+        binary_string_4_bits = ''.join(['0' for i in range(4 - len(binary_string[2:]))]) + binary_string[2:]
+        return binary_string_4_bits

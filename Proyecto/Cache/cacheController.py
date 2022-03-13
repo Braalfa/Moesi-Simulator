@@ -54,7 +54,7 @@ class CacheController:
 
     def receive_message_from_bus(self, message: Message):
         self.logger.info("Message received from bus; message:" + message.__str__())
-        self.logger.info("Accepted msgs: " + str(self.messages_received) + "Received msgs: " + str(self.messages_accepted))
+        # self.logger.info("Accepted msgs: " + str(self.messages_received) + "Received msgs: " + str(self.messages_accepted))
         self.messages_received += 1
         if message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
