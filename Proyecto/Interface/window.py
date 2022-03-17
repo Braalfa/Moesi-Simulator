@@ -76,7 +76,9 @@ class WindowsController:
     def update_values(self):
         for i in range(self.simulation.number_of_cpus):
             instruction_property = "last_execution" + str(i) + "_text"
+            current_process_property = "current_process" + str(i) + "_text"
             self.root.setProperty(instruction_property, self.simulation.get_cpu_instruction(i))
+            self.root.setProperty(current_process_property, self.simulation.get_status(i))
             cache_content = self.simulation.get_cache_content(i)
             for j in range(self.simulation.number_of_blocks_per_cache):
                 cache_line: CacheLine = cache_content[j]
@@ -84,7 +86,7 @@ class WindowsController:
                 address_property = "address" + str(j) + "_" + str(i) + "_text"
                 state_property = "state" + str(j) + "_" + str(i) + "_text"
                 self.root.setProperty(data_property, cache_line.data)
-                self.root.setProperty(address_property, cache_line.get_address_as_4_bits())
+                self.root.setProperty(address_property, cache_line.get_address_as_3_bits())
                 self.root.setProperty(state_property, cache_line.get_state_as_string())
 
         memory_contents = self.simulation.get_memory_content()

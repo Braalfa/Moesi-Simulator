@@ -26,6 +26,7 @@ class CPU:
         self.execute_once = False
         self.next_instruction = None
         self.continue_working = True
+        self.current_status = "Waiting"
 
     def stop_execution(self):
         self.execute_continually = False
@@ -47,11 +48,14 @@ class CPU:
     def run(self):
         while self.continue_working:
             if self.should_execute():
+                self.current_status = "Running"
                 self.logger.info("Running on processor " + str(self.processor_number))
                 instruction = self.obtain_next_instruction()
                 self.logger.info("Instruction on processor: " + str(self.processor_number) + " instruction: " + instruction.__str__())
                 self.update_most_recent_instruction(instruction)
                 self.execute_instruction(instruction)
+            else:
+                self.current_status = "Waiting"
 
     def should_execute(self):
         if self.execute_continually:

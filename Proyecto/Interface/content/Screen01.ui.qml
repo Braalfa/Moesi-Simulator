@@ -90,8 +90,36 @@ Rectangle {
 
     property alias instruction_input_text:instruction_input.text
 
+    property alias current_process0_text: current_process0.text
+    property alias current_process1_text: current_process1.text
+    property alias current_process2_text: current_process2.text
+    property alias current_process3_text: current_process3.text
+
+
+
     signal buttonClick(string buttonId);
 
+    Text {
+        id: current_process_label0
+        x: 107
+        y: 324
+        width: 136
+        height: 26
+        text: qsTr("State:")
+        font.pixelSize: 20
+        font.bold: false
+    }
+
+    Text {
+        id: current_process0
+        x: 243
+        y: 325
+        width: 136
+        height: 26
+        text: qsTr("state")
+        font.pixelSize: 20
+        font.bold: false
+    }
 
     Text {
         id: processor0
@@ -106,8 +134,8 @@ Rectangle {
     
     Text {
         id: cache0
-        x: 181
-        y: 348
+        x: 165
+        y: 392
         text: qsTr("Cache 0")
         font.pixelSize: 26
         font.bold: true
@@ -117,7 +145,7 @@ Rectangle {
     Grid {
         id: cache1_grid
         x: 69
-        y: 418
+        y: 474
         width: 350
         height: 288
         opacity: 1
@@ -301,8 +329,8 @@ Rectangle {
     
     Grid {
         id: process_grid0
-        x: 78
-        y: 406
+        x: 101
+        y: 319
         width: 318
         height: 36
         rows: 1
@@ -322,8 +350,8 @@ Rectangle {
     
     Text {
         id: cache1
-        x: 641
-        y: 348
+        x: 625
+        y: 392
         text: qsTr("Cache 1")
         font.pixelSize: 26
         font.bold: true
@@ -333,7 +361,7 @@ Rectangle {
     Grid {
         id: cache1_grid1
         x: 529
-        y: 419
+        y: 475
         width: 350
         height: 288
         opacity: 1
@@ -511,17 +539,6 @@ Rectangle {
         columns: 2
     }
     
-    Grid {
-        id: process_grid1
-        x: 538
-        y: 406
-        width: 318
-        height: 36
-        rows: 1
-        spacing: 33
-        columns: 2
-    }
-    
     Text {
         id: processor2
         x: 1089
@@ -534,8 +551,8 @@ Rectangle {
     
     Text {
         id: cache2
-        x: 1120
-        y: 348
+        x: 1104
+        y: 392
         text: qsTr("Cache 2")
         font.pixelSize: 26
         font.bold: true
@@ -545,7 +562,7 @@ Rectangle {
     Grid {
         id: cache1_grid2
         x: 1008
-        y: 419
+        y: 475
         width: 350
         height: 288
         opacity: 1
@@ -723,17 +740,6 @@ Rectangle {
         columns: 2
     }
     
-    Grid {
-        id: process_grid2
-        x: 1017
-        y: 406
-        width: 318
-        height: 36
-        rows: 1
-        spacing: 33
-        columns: 2
-    }
-    
     Text {
         id: processor3
         x: 1547
@@ -746,8 +752,8 @@ Rectangle {
     
     Text {
         id: cache3
-        x: 1578
-        y: 348
+        x: 1562
+        y: 392
         text: qsTr("Cache 3")
         font.pixelSize: 26
         font.bold: true
@@ -757,7 +763,7 @@ Rectangle {
     Grid {
         id: cache1_grid3
         x: 1466
-        y: 419
+        y: 475
         width: 350
         height: 288
         opacity: 1
@@ -932,17 +938,6 @@ Rectangle {
             font.pixelSize: 20
             font.bold: false
         }
-        columns: 2
-    }
-    
-    Grid {
-        id: process_grid3
-        x: 1475
-        y: 406
-        width: 318
-        height: 36
-        rows: 1
-        spacing: 33
         columns: 2
     }
     
@@ -1236,7 +1231,7 @@ Rectangle {
             id: instruction_input_label
             width: 136
             height: 26
-            text: qsTr("Instruction::")
+            text: qsTr("Instruction:")
             font.pixelSize: 20
             font.bold: false
         }
@@ -1258,6 +1253,105 @@ Rectangle {
         width: 1747
         height: 36
         orientation: Qt.Horizontal
+    }
+
+    Text {
+        id: current_process_label1
+        x: 567
+        y: 324
+        width: 136
+        height: 26
+        text: qsTr("State:")
+        font.pixelSize: 20
+        font.bold: false
+    }
+
+    Text {
+        id: current_process1
+        x: 703
+        y: 325
+        width: 136
+        height: 26
+        text: qsTr("state")
+        font.pixelSize: 20
+        font.bold: false
+    }
+
+    Grid {
+        id: process_grid1
+        x: 561
+        y: 319
+        width: 318
+        height: 36
+        rows: 1
+        spacing: 33
+        columns: 2
+    }
+
+    Text {
+        id: current_process_label2
+        x: 1054
+        y: 325
+        width: 136
+        height: 26
+        text: qsTr("State:")
+        font.pixelSize: 20
+        font.bold: false
+    }
+
+    Text {
+        id: current_process2
+        x: 1190
+        y: 326
+        width: 136
+        height: 26
+        text: qsTr("state")
+        font.pixelSize: 20
+        font.bold: false
+    }
+
+    Grid {
+        id: process_grid2
+        x: 1048
+        y: 320
+        width: 318
+        height: 36
+        rows: 1
+        spacing: 33
+        columns: 2
+    }
+
+    Text {
+        id: current_process_label3
+        x: 1528
+        y: 323
+        width: 136
+        height: 26
+        text: qsTr("State:")
+        font.pixelSize: 20
+        font.bold: false
+    }
+
+    Text {
+        id: current_process3
+        x: 1664
+        y: 324
+        width: 136
+        height: 26
+        text: qsTr("state")
+        font.pixelSize: 20
+        font.bold: false
+    }
+
+    Grid {
+        id: process_grid3
+        x: 1522
+        y: 318
+        width: 318
+        height: 36
+        rows: 1
+        spacing: 33
+        columns: 2
     }
     
     

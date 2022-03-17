@@ -42,10 +42,10 @@ class CacheLine:
     def get_state_as_string(self):
         return self.state.name
 
-    def get_address_as_4_bits(self) -> str:
+    def get_address_as_3_bits(self) -> str:
         binary_string = bin(self.address)
-        binary_string_4_bits = ''.join(['0' for i in range(4 - len(binary_string[2:]))]) + binary_string[2:]
-        return binary_string_4_bits
+        binary_string_3_bits = ''.join(['0' for i in range(3 - len(binary_string[2:]))]) + binary_string[2:]
+        return binary_string_3_bits
 
 
 class Cache:
@@ -92,7 +92,6 @@ class Cache:
         memory_by_set = [line for line in self.memory if line.line_number // 2 == set_number]
         memory_index = randint(0, 1)
         selected_line = memory_by_set[memory_index]
-        selected_line.acquire_lock()
         return selected_line
 
     def find_line_in_cache(self, address: int):

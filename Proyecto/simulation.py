@@ -59,6 +59,9 @@ class Simulation:
     def set_next_instruction(self, next_instruction: Instruction):
         self.cpus[next_instruction.processor_number].set_next_instruction(next_instruction)
 
+    def get_status(self, cpu_number: int) -> str:
+        return self.cpus[cpu_number].current_status
+
     def continue_execution(self):
         for cpu in self.cpus:
             cpu.continue_execution()
