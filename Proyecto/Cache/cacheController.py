@@ -7,7 +7,7 @@ from Communication.messaging import MessageType
 import time
 import logging
 from Timing.timing import Timing
-
+from CPU.instruction import InstructionType
 
 class CacheController:
     def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing):
@@ -18,6 +18,7 @@ class CacheController:
         self.timing = timing
         self.messages_received = 0
         self.messages_accepted = 0
+        self.current_instruction_type: InstructionType|None = None
 
     def return_next_send_message(self):
         try:
@@ -28,14 +29,18 @@ class CacheController:
     def write_request(self, address: int, new_value: str):
         line, state = self.cache.obtain_line_and_state(address)
         line.acquire_lock()
+        self.current_instruction_type = InstructionType.WRITE
         self.transition_by_cpu(state, line, CPUAction.WRITE, address, new_value)
         line.release_lock()
+        self.current_instruction_type = None
 
     def read_request(self, address: int):
         line, state = self.cache.obtain_line_and_state(address)
         line.acquire_lock()
+        self.current_instruction_type = InstructionType.READ
         data = self.transition_by_cpu(state, line, CPUAction.READ, address)
         line.release_lock()
+        self.current_instruction_type = None
         return data
 
     def transition_by_cpu(self, current_state: State, line: CacheLine,
@@ -65,7 +70,7 @@ class CacheController:
             else:
                 data = self.read_data_from_bus(address)
                 if data is None:
-                    self.logger.info("aqui hay que hacer que se meta al primer caso del if no sharers found")
+                    self.logger.error("aqui hay que hacer que se meta al primer caso del if no sharers found")
                 next_state = State.S
                 self.overwrite_existing_line(line, address, data, next_state)
             return line.get_data()
@@ -141,9 +146,14 @@ class CacheController:
 
     def transition_by_bus_aux(self, message: Message):
         line = self.cache.obtain_line_by_address(message.address)
+        if line is not None and line.is_locked() and \
+                message.message_type == MessageType.WRITE_MISS \
+                and self.current_instruction_type == InstructionType.WRITE:
+            return
         if line is not None:
             line.acquire_lock()
-            self.transition_by_bus(message, line)
+            if line.get_address() == message.address:
+                self.transition_by_bus(message, line)
             line.release_lock()
 
     def transition_by_bus(self, message: Message, line: CacheLine):

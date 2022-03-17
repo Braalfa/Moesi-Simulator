@@ -15,6 +15,9 @@ class CacheLine:
         self.data = data
         self.lock = Lock()
 
+    def is_locked(self):
+        self.lock.locked()
+
     def acquire_lock(self):
         self.lock.acquire()
 
