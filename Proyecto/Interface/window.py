@@ -26,6 +26,7 @@ class UpdatesWorker(QObject):
             time.sleep(0.2)
         self.finished.emit()
 
+
 class WindowsController:
     def __init__(self, simulation: Simulation):
         self.simulation = simulation
@@ -75,9 +76,7 @@ class WindowsController:
     def update_values(self):
         for i in range(self.simulation.number_of_cpus):
             instruction_property = "last_execution" + str(i) + "_text"
-            current_process_property = "current_process" + str(i) + "_text"
             self.root.setProperty(instruction_property, self.simulation.get_cpu_instruction(i))
-            self.root.setProperty(current_process_property, self.simulation.get_cache_status(i))
             cache_content = self.simulation.get_cache_content(i)
             for j in range(self.simulation.number_of_blocks_per_cache):
                 cache_line: CacheLine = cache_content[j]

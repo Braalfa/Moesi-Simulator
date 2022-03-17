@@ -62,14 +62,14 @@ class Instruction:
         if self.instruction_type == InstructionType.CALC:
             pass
         elif self.instruction_type == InstructionType.READ:
-            string += " " + self.get_address_as_4_bits(self.address)
+            string += " " + self.get_address_as_3_bits(self.address)
         elif self.instruction_type == InstructionType.WRITE:
-            string += " " + self.get_address_as_4_bits(self.address)
+            string += " " + self.get_address_as_3_bits(self.address)
             string += " " + self.value
         return string
 
     @staticmethod
-    def get_address_as_4_bits(address: int) -> str:
+    def get_address_as_3_bits(address: int) -> str:
         binary_string = bin(address)
-        binary_string_4_bits = ''.join(['0' for i in range(4 - len(binary_string[2:]))]) + binary_string[2:]
-        return binary_string_4_bits
+        binary_string_3_bits = ''.join(['0' for i in range(3 - len(binary_string[2:]))]) + binary_string[2:]
+        return binary_string_3_bits

@@ -79,11 +79,6 @@ Rectangle {
     property alias last_execution2_text: last_execution2.text
     property alias last_execution3_text: last_execution3.text
 
-    property alias current_process0_text: current_process0.text
-    property alias current_process1_text: current_process1.text
-    property alias current_process2_text: current_process2.text
-    property alias current_process3_text: current_process3.text
-
     property alias data_memory0_text:data_memory_0.text
     property alias data_memory1_text:data_memory_1.text
     property alias data_memory2_text:data_memory_2.text
@@ -102,7 +97,7 @@ Rectangle {
         id: processor0
         x: 150
         y: 202
-        text: qsTr("Procesador 0")
+        text: qsTr("Processor 0")
         font.pixelSize: 26
         renderType: Text.QtRendering
         font.bold: true
@@ -121,8 +116,8 @@ Rectangle {
     
     Grid {
         id: cache1_grid
-        x: 53
-        y: 483
+        x: 69
+        y: 418
         width: 350
         height: 288
         opacity: 1
@@ -142,7 +137,7 @@ Rectangle {
         
         Text {
             id: block_number
-            text: qsTr(" Bloque")
+            text: qsTr(" Block")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -151,7 +146,7 @@ Rectangle {
         
         Text {
             id: status
-            text: qsTr("Estado")
+            text: qsTr("State")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -160,7 +155,7 @@ Rectangle {
         
         Text {
             id: address
-            text: qsTr("Direccion")
+            text: qsTr("Direction")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -169,7 +164,7 @@ Rectangle {
         
         Text {
             id: datum
-            text: qsTr("Dato")
+            text: qsTr("Data")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -288,7 +283,7 @@ Rectangle {
             id: last_execution_label0
             width: 136
             height: 26
-            text: qsTr("Ultima Ejecucion:")
+            text: qsTr("Latest instruction:")
             font.pixelSize: 20
             font.bold: false
         }
@@ -297,7 +292,7 @@ Rectangle {
             id: last_execution0
             width: 136
             height: 26
-            text: qsTr("Instruccion")
+            text: qsTr("Instruction")
             font.pixelSize: 20
             renderType: Text.QtRendering
             font.bold: false
@@ -312,23 +307,6 @@ Rectangle {
         height: 36
         rows: 1
         spacing: 33
-        Text {
-            id: current_process_label0
-            width: 136
-            height: 26
-            text: qsTr("Proceso actual")
-            font.pixelSize: 20
-            font.bold: false
-        }
-        
-        Text {
-            id: current_process0
-            width: 136
-            height: 26
-            text: qsTr("proceso")
-            font.pixelSize: 20
-            font.bold: false
-        }
         columns: 2
     }
     
@@ -336,7 +314,7 @@ Rectangle {
         id: processor1
         x: 610
         y: 202
-        text: qsTr("Procesador 1")
+        text: qsTr("Processor 1")
         font.pixelSize: 26
         font.bold: true
         scale: 1
@@ -354,8 +332,8 @@ Rectangle {
     
     Grid {
         id: cache1_grid1
-        x: 513
-        y: 483
+        x: 529
+        y: 419
         width: 350
         height: 288
         opacity: 1
@@ -368,7 +346,7 @@ Rectangle {
         layoutDirection: Qt.LeftToRight
         Text {
             id: block_number1
-            text: qsTr(" Bloque")
+            text: qsTr(" Block")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -377,7 +355,7 @@ Rectangle {
         
         Text {
             id: status1
-            text: qsTr("Estado")
+            text: qsTr("State")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -386,7 +364,7 @@ Rectangle {
         
         Text {
             id: address1
-            text: qsTr("Direccion")
+            text: qsTr("Direction")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -395,7 +373,7 @@ Rectangle {
         
         Text {
             id: datum1
-            text: qsTr("Dato")
+            text: qsTr("Data")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -517,7 +495,7 @@ Rectangle {
             id: last_execution_label1
             width: 136
             height: 26
-            text: qsTr("Ultima Ejecucion:")
+            text: qsTr("Latest instruction:")
             font.pixelSize: 20
             font.bold: false
         }
@@ -526,7 +504,7 @@ Rectangle {
             id: last_execution1
             width: 136
             height: 26
-            text: qsTr("Instruccion")
+            text: qsTr("Instruction")
             font.pixelSize: 20
             font.bold: false
         }
@@ -541,23 +519,6 @@ Rectangle {
         height: 36
         rows: 1
         spacing: 33
-        Text {
-            id: current_process_label1
-            width: 136
-            height: 26
-            text: qsTr("Proceso actual")
-            font.pixelSize: 20
-            font.bold: false
-        }
-        
-        Text {
-            id: current_process1
-            width: 136
-            height: 26
-            text: qsTr("proceso")
-            font.pixelSize: 20
-            font.bold: false
-        }
         columns: 2
     }
     
@@ -565,7 +526,7 @@ Rectangle {
         id: processor2
         x: 1089
         y: 202
-        text: qsTr("Procesador 2")
+        text: qsTr("Processor 2")
         font.pixelSize: 26
         font.bold: true
         scale: 1
@@ -583,8 +544,8 @@ Rectangle {
     
     Grid {
         id: cache1_grid2
-        x: 992
-        y: 483
+        x: 1008
+        y: 419
         width: 350
         height: 288
         opacity: 1
@@ -597,7 +558,7 @@ Rectangle {
         layoutDirection: Qt.LeftToRight
         Text {
             id: block_number2
-            text: qsTr(" Bloque")
+            text: qsTr(" Block")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -606,7 +567,7 @@ Rectangle {
         
         Text {
             id: status2
-            text: qsTr("Estado")
+            text: qsTr("State")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -615,7 +576,7 @@ Rectangle {
         
         Text {
             id: address2
-            text: qsTr("Direccion")
+            text: qsTr("Direction")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -624,7 +585,7 @@ Rectangle {
         
         Text {
             id: datum2
-            text: qsTr("Dato")
+            text: qsTr("Data")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -746,7 +707,7 @@ Rectangle {
             id: last_execution_label2
             width: 136
             height: 26
-            text: qsTr("Ultima Ejecucion:")
+            text: qsTr("Latest instruction:")
             font.pixelSize: 20
             font.bold: false
         }
@@ -755,7 +716,7 @@ Rectangle {
             id: last_execution2
             width: 136
             height: 26
-            text: qsTr("Instruccion")
+            text: qsTr("Instruction")
             font.pixelSize: 20
             font.bold: false
         }
@@ -770,23 +731,6 @@ Rectangle {
         height: 36
         rows: 1
         spacing: 33
-        Text {
-            id: current_process_label2
-            width: 136
-            height: 26
-            text: qsTr("Proceso actual")
-            font.pixelSize: 20
-            font.bold: false
-        }
-        
-        Text {
-            id: current_process2
-            width: 136
-            height: 26
-            text: qsTr("proceso")
-            font.pixelSize: 20
-            font.bold: false
-        }
         columns: 2
     }
     
@@ -794,7 +738,7 @@ Rectangle {
         id: processor3
         x: 1547
         y: 202
-        text: qsTr("Procesador 3")
+        text: qsTr("Processor 3")
         font.pixelSize: 26
         font.bold: true
         scale: 1
@@ -812,8 +756,8 @@ Rectangle {
     
     Grid {
         id: cache1_grid3
-        x: 1450
-        y: 483
+        x: 1466
+        y: 419
         width: 350
         height: 288
         opacity: 1
@@ -826,7 +770,7 @@ Rectangle {
         layoutDirection: Qt.LeftToRight
         Text {
             id: block_number3
-            text: qsTr(" Bloque")
+            text: qsTr(" Block")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -835,7 +779,7 @@ Rectangle {
         
         Text {
             id: status3
-            text: qsTr("Estado")
+            text: qsTr("State")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -844,7 +788,7 @@ Rectangle {
         
         Text {
             id: address3
-            text: qsTr("Direccion")
+            text: qsTr("Direction")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -853,7 +797,7 @@ Rectangle {
         
         Text {
             id: datum3
-            text: qsTr("Dato")
+            text: qsTr("Data")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -975,7 +919,7 @@ Rectangle {
             id: last_execution_label3
             width: 136
             height: 26
-            text: qsTr("Ultima Ejecucion:")
+            text: qsTr("Latest instruction:")
             font.pixelSize: 20
             font.bold: false
         }
@@ -984,7 +928,7 @@ Rectangle {
             id: last_execution3
             width: 136
             height: 26
-            text: qsTr("Instruccion")
+            text: qsTr("Instruction")
             font.pixelSize: 20
             font.bold: false
         }
@@ -999,23 +943,6 @@ Rectangle {
         height: 36
         rows: 1
         spacing: 33
-        Text {
-            id: current_process_label3
-            width: 136
-            height: 26
-            text: qsTr("Proceso actual")
-            font.pixelSize: 20
-            font.bold: false
-        }
-        
-        Text {
-            id: current_process3
-            width: 136
-            height: 26
-            text: qsTr("proceso")
-            font.pixelSize: 20
-            font.bold: false
-        }
         columns: 2
     }
     
@@ -1036,7 +963,7 @@ Rectangle {
         
         Text {
             id: direction_memory
-            text: qsTr("Direccion")
+            text: qsTr("Direction")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -1045,7 +972,7 @@ Rectangle {
         
         Text {
             id: data_memory
-            text: qsTr("Dato")
+            text: qsTr("Data")
             font.pixelSize: 20
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignTop
@@ -1054,7 +981,7 @@ Rectangle {
         
         Text {
             id: direction_memory_0
-            text: qsTr("Text")
+            text: qsTr("000")
             font.pixelSize: 19
         }
         
@@ -1066,7 +993,7 @@ Rectangle {
         
         Text {
             id: direction_memory_1
-            text: qsTr("Text")
+            text: qsTr("001")
             font.pixelSize: 19
         }
         
@@ -1078,7 +1005,7 @@ Rectangle {
         
         Text {
             id: direction_memory_2
-            text: qsTr("Text")
+            text: qsTr("010")
             font.pixelSize: 19
         }
         
@@ -1090,7 +1017,7 @@ Rectangle {
         
         Text {
             id: direction_memory_3
-            text: qsTr("Text")
+            text: qsTr("011")
             font.pixelSize: 19
         }
         
@@ -1102,7 +1029,7 @@ Rectangle {
         
         Text {
             id: direction_memory_4
-            text: qsTr("Text")
+            text: qsTr("100")
             font.pixelSize: 19
         }
         
@@ -1114,7 +1041,7 @@ Rectangle {
         
         Text {
             id: direction_memory_5
-            text: qsTr("Text")
+            text: qsTr("101")
             font.pixelSize: 19
         }
         
@@ -1126,7 +1053,7 @@ Rectangle {
         
         Text {
             id: direction_memory_6
-            text: qsTr("Text")
+            text: qsTr("110")
             font.pixelSize: 19
         }
         
@@ -1138,7 +1065,7 @@ Rectangle {
         
         Text {
             id: direction_memory_7
-            text: qsTr("Text")
+            text: qsTr("111")
             font.pixelSize: 19
         }
         
@@ -1183,7 +1110,7 @@ Rectangle {
     ToolSeparator {
         id: toolSeparator3
         x: 53
-        y: 793
+        y: 777
         width: 1747
         height: 36
         orientation: Qt.Horizontal
@@ -1309,7 +1236,7 @@ Rectangle {
             id: instruction_input_label
             width: 136
             height: 26
-            text: qsTr("Instruccion:")
+            text: qsTr("Instruction::")
             font.pixelSize: 20
             font.bold: false
         }

@@ -6,19 +6,18 @@ from Communication.messaging import Message
 from Communication.messaging import MessageType
 import time
 import logging
-from threading import Lock
+from Timing.timing import Timing
 
 
 class CacheController:
-    def __init__(self, cache: Cache, logger: logging.Logger):
+    def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing):
         self.cache = cache
         self.received_messages_queue = []
         self.send_messages_queue = []
         self.logger = logger
-        self.lock = Lock()
+        self.timing = timing
         self.messages_received = 0
         self.messages_accepted = 0
-        self.current_process = "Idle"
 
     def return_next_send_message(self):
         try:
@@ -26,64 +25,35 @@ class CacheController:
         except IndexError:
             return None
 
-    def switch_process_status_to_working_by_cpu(self):
-        self.current_process = "Working on cpu request"
-
-    def switch_process_status_to_working_by_bus(self):
-        self.current_process = "Working on bus request"
-
-    def switch_process_status_to_idle(self):
-        self.current_process = "Idle"
-
     def write_request(self, address: int, new_value: str):
-        self.lock.acquire()
-        self.switch_process_status_to_working_by_cpu()
-        state = self.cache.obtain_address_state(address)
-        self.transition_by_cpu(state, CPUAction.WRITE, address, new_value)
-        self.switch_process_status_to_idle()
-        self.lock.release()
+        line, state = self.cache.obtain_line_and_state(address)
+        line.acquire_lock()
+        self.transition_by_cpu(state, line, CPUAction.WRITE, address, new_value)
+        line.release_lock()
 
     def read_request(self, address: int):
-        self.lock.acquire()
-        self.switch_process_status_to_working_by_cpu()
-        state = self.cache.obtain_address_state(address)
-        data = self.transition_by_cpu(state, CPUAction.READ, address)
-        self.switch_process_status_to_idle()
-        self.lock.release()
+        line, state = self.cache.obtain_line_and_state(address)
+        line.acquire_lock()
+        data = self.transition_by_cpu(state, line, CPUAction.READ, address)
+        line.release_lock()
         return data
 
-    def receive_message_from_bus(self, message: Message):
-        self.logger.info("Message received from bus; message:" + message.__str__())
-        # self.logger.info("Accepted msgs: " + str(self.messages_received) + "Received msgs: " + str(self.messages_accepted))
-        self.messages_received += 1
-        if message.message_type == MessageType.READ_MISS \
-                or message.message_type == MessageType.WRITE_MISS:
-            self.lock.acquire()
-            self.switch_process_status_to_working_by_bus()
-            self.messages_accepted += 1
-            self.transition_by_bus(message)
-            self.switch_process_status_to_idle()
-            self.lock.release()
-        else:
-            self.messages_accepted += 1
-            self.received_messages_queue.append(message)
-
-    def transition_by_cpu(self, current_state: State,
+    def transition_by_cpu(self, current_state: State, line: CacheLine,
                           action: CPUAction, address: int, new_value: str = None):
         self.logger.info("Transition by cpu; current state: " + str(current_state))
+        self.timing.cache_wait()
         if current_state == State.I:
-            return self.transition_by_cpu_from_I(action, address, new_value)
+            return self.transition_by_cpu_from_I(action, line, address, new_value)
         elif current_state == State.S:
-            return self.transition_by_cpu_from_S(action, address, new_value)
+            return self.transition_by_cpu_from_S(action, line, address, new_value)
         elif current_state == State.E:
-            return self.transition_by_cpu_from_E(action, address, new_value)
+            return self.transition_by_cpu_from_E(action, line, new_value)
         elif current_state == State.O:
-            return self.transition_by_cpu_from_O(action, address, new_value)
+            return self.transition_by_cpu_from_O(action, line, address, new_value)
         elif current_state == State.M:
-            return self.transition_by_cpu_from_M(action, address, new_value)
+            return self.transition_by_cpu_from_M(action, line, new_value)
 
-    def transition_by_cpu_from_I(self, action: CPUAction, address: int, new_value: str = None):
-        block = self.cache.select_block_to_overwrite(address)
+    def transition_by_cpu_from_I(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
             self.broadcast_read_miss(address)
             sharers_found = self.are_there_sharers(address)
@@ -91,108 +61,141 @@ class CacheController:
                 self.ask_data_from_memory(address)
                 data = self.read_memory_response_from_bus(address)
                 next_state = State.E
-                self.overwrite_existing_block(block, address, data, next_state)
+                self.overwrite_existing_line(line, address, data, next_state)
             else:
                 data = self.read_data_from_bus(address)
                 if data is None:
                     self.logger.info("aqui hay que hacer que se meta al primer caso del if no sharers found")
                 next_state = State.S
-                self.overwrite_existing_block(block, address, data, next_state)
-            return block.data
+                self.overwrite_existing_line(line, address, data, next_state)
+            return line.get_data()
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address)
             next_state = State.M
-            self.overwrite_existing_block(block, address, new_value, next_state)
+            self.overwrite_existing_line(line, address, new_value, next_state)
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
-    def transition_by_cpu_from_S(self, action: CPUAction, address: int, new_value: str = None):
+    def overwrite_existing_line(self, line: CacheLine, address: int, data: str, state: State):
+        self.evict(line)
+        line.set_state(state)
+        line.set_address(address)
+        line.set_data(data)
+
+    def transition_by_cpu_from_S(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
             next_state = State.S
-            return self.cache.read_and_update_state(address, next_state)
+            line.set_state(next_state)
+            return line.get_data()
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address)
             next_state = State.M
-            self.cache.write(address, new_value, next_state)
+            line.set_state(next_state)
+            line.set_data(new_value)
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
-    def transition_by_cpu_from_E(self, action: CPUAction, address: int, new_value: str = None):
+    def transition_by_cpu_from_E(self, action: CPUAction, line: CacheLine, new_value: str = None):
         if action == CPUAction.READ:
             next_state = State.E
-            return self.cache.read_and_update_state(address, next_state)
+            line.set_state(next_state)
+            return line.get_data()
         elif action == CPUAction.WRITE:
             next_state = State.M
-            self.cache.write(address, new_value, next_state)
+            line.set_state(next_state)
+            line.set_data(new_value)
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
-    def transition_by_cpu_from_O(self, action: CPUAction, address: int, new_value: str = None):
+    def transition_by_cpu_from_O(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
             next_state = State.O
-            return self.cache.read_and_update_state(address, next_state)
+            line.set_state(next_state)
+            return line.get_data()
         elif action == CPUAction.WRITE:
             next_state = State.M
             self.broadcast_write_miss(address)
-            self.cache.write(address, new_value, next_state)
+            line.set_state(next_state)
+            line.set_data(new_value)
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
-    def transition_by_cpu_from_M(self, action: CPUAction, address: int, new_value: str = None):
+    def transition_by_cpu_from_M(self, action: CPUAction, line: CacheLine, new_value: str = None):
         if action == CPUAction.READ:
             next_state = State.M
-            return self.cache.read_and_update_state(address, next_state)
+            line.set_state(next_state)
+            return line.get_data()
         elif action == CPUAction.WRITE:
             next_state = State.M
-            self.cache.write(address, new_value, next_state)
+            line.set_state(next_state)
+            line.set_data(new_value)
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
-    def transition_by_bus(self, message: Message):
-        current_state = self.cache.obtain_address_state(message.address)
+    def receive_message_from_bus(self, message: Message):
+        self.logger.info("Message received from bus; message:" + message.__str__())
+        # self.logger.info("Accepted msgs: " + str(self.messages_received) + "Received msgs: " + str(self.messages_accepted))
+        self.messages_received += 1
+        if message.message_type == MessageType.READ_MISS \
+                or message.message_type == MessageType.WRITE_MISS:
+            self.messages_accepted += 1
+            self.transition_by_bus_aux(message)
+        else:
+            self.messages_accepted += 1
+            self.received_messages_queue.append(message)
+
+    def transition_by_bus_aux(self, message: Message):
+        line = self.cache.obtain_line_by_address(message.address)
+        if line is not None:
+            line.acquire_lock()
+            self.transition_by_bus(message, line)
+            line.release_lock()
+
+    def transition_by_bus(self, message: Message, line: CacheLine):
+        self.timing.cache_wait()
+        current_state = line.get_state()
         self.logger.info("Transition by bus ; current state: " + str(current_state))
         if current_state == State.I:
             self.logger.info("Transition by bus; next_state: " + str(State.I))
             pass
         elif current_state == State.S:
-            return self.transition_by_bus_from_S(message)
+            return self.transition_by_bus_from_S(message, line)
         elif current_state == State.E:
-            return self.transition_by_bus_from_E(message)
+            return self.transition_by_bus_from_E(message, line)
         elif current_state == State.O:
-            return self.transition_by_bus_from_O_and_M(message)
+            return self.transition_by_bus_from_O_and_M(message, line)
         elif current_state == State.M:
-            return self.transition_by_bus_from_O_and_M(message)
+            return self.transition_by_bus_from_O_and_M(message, line)
 
-    def transition_by_bus_from_S(self, message: Message):
+    def transition_by_bus_from_S(self, message: Message, line: CacheLine):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
-            self.cache.write_state(message.address, next_state)
+            line.set_state(next_state)
             self.return_shared_to_bus(message.address, message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
-            self.cache.write_state(message.address, next_state)
+            line.set_state(next_state)
         self.logger.info("Transition by bus; next_state: " + str(next_state))
 
-    def transition_by_bus_from_E(self, message: Message):
+    def transition_by_bus_from_E(self, message: Message, line: CacheLine):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
-            self.cache.write_state(message.address, next_state)
+            line.set_state(next_state)
             self.return_shared_to_bus(message.address, message.origin)
-            self.supply_data_to_bus(message.address, self.cache.read(message.address), message.origin)
+            self.supply_data_to_bus(message.address, line.get_data(), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
-            self.cache.write_state(message.address, next_state)
+            line.set_state(next_state)
         self.logger.info("Transition by bus; next_state: " + str(next_state))
 
-    def transition_by_bus_from_O_and_M(self, message: Message):
+    def transition_by_bus_from_O_and_M(self, message: Message, line: CacheLine):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.O
-            self.cache.write_state(message.address, next_state)
+            line.set_state(next_state)
             self.return_shared_to_bus(message.address, message.origin)
-            self.supply_data_to_bus(message.address, self.cache.read(message.address), message.origin)
+            self.supply_data_to_bus(message.address, line.get_data(), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
-            self.cache.write_state(message.address, next_state)
-
+            line.set_state(next_state)
         self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def evict(self, line: CacheLine):
-        self.logger.info("Evicting; block number: " + str(line.block_number) + " address: " + str(line.address))
+        self.logger.info("Evicting; line number: " + str(line.line_number) + " address: " + str(line.address))
         current_state = line.state
         if current_state == State.I:
             line.set_state(State.I)
@@ -201,10 +204,10 @@ class CacheController:
         elif current_state == State.E:
             line.set_state(State.I)
         elif current_state == State.O:
-            self.ask_write_back(line.address, line.data)
+            self.ask_write_back(line.get_address(), line.get_data())
             line.set_state(State.I)
         elif current_state == State.M:
-            self.ask_write_back(line.address, line.data)
+            self.ask_write_back(line.get_address(), line.get_data())
             line.set_state(State.I)
 
     def broadcast_read_miss(self, address: int):
@@ -215,8 +218,10 @@ class CacheController:
 
     def ask_data_from_memory(self, address: int):
         self.send_message_to_bus(MessageType.REQUEST_FROM_MEMORY, address)
+        self.timing.memory_wait()
 
     def ask_write_back(self, address: int, new_value: str):
+        self.timing.memory_wait()
         self.send_message_to_bus(MessageType.WRITE_BACK, address, data=new_value)
 
     def are_there_sharers(self, address: int):
@@ -231,10 +236,6 @@ class CacheController:
 
     def supply_data_to_bus(self, address: int, data: str, destination: int):
         self.send_message_to_bus(MessageType.DATA_RESPONSE, address, data=data, destination=destination)
-
-    def overwrite_existing_block(self, block: CacheLine, address: int, data: str, state: State):
-        self.evict(block)
-        self.cache.overwrite_block(block, address, data, state)
 
     def read_data_from_bus(self, address: int):
         message = self.await_message_from_bus(MessageType.DATA_RESPONSE, address)
@@ -252,8 +253,6 @@ class CacheController:
             self.logger.error("The memory didn't respond")
             return None
 
-
-    # TODO: Adjust time
     def await_message_from_bus(self, message_type: MessageType,
                                address: int, max_time: int = 10) -> Message | None:
         start = time.time()

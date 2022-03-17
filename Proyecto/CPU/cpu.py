@@ -5,11 +5,12 @@ from Cache.cacheController import CacheController
 import time
 import threading
 import logging
+from Timing.timing import Timing
 
 
 # TODO: The cpu executes the instructions and talks to the cache via the cache controller
 class CPU:
-    def __init__(self, processor_number: int, cache_controller: CacheController, logger: logging.Logger,
+    def __init__(self, processor_number: int, cache_controller: CacheController, logger: logging.Logger, timing: Timing,
                  number_of_memory_blocks: int = 8, block_width_hexadecimal: int = 4,
                  calculation_time: int = 1):
         self.processor_number = processor_number
@@ -19,6 +20,7 @@ class CPU:
                                                            block_width_hexadecimal=block_width_hexadecimal)
         self.calculation_time = calculation_time
         self.logger = logger
+        self.timing = timing
         self.most_recent_instruction: Instruction | None = None
         self.execute_continually = False
         self.execute_once = False
@@ -80,12 +82,14 @@ class CPU:
             self.execute_write(instruction.address, instruction.value)
 
     def execute_calculation(self):
-        time.sleep(self.calculation_time)
+        self.timing.execute_wait()
 
     def execute_read(self, address: int):
+        self.timing.execute_wait()
         self.cache_controller.read_request(address)
 
     def execute_write(self, address: int, new_value: str):
+        self.timing.execute_wait()
         self.cache_controller.write_request(address, new_value)
 
     def get_most_recent_instruction_as_string(self):

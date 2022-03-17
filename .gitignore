@@ -12,3 +12,7 @@ Proyecto/Enums/__pycache__/
 *.log
 
 Proyecto/Cache/__pycache__/
+
+Proyecto/Timing/__pycache__/
+
+Proyecto/Interface/__pycache__/

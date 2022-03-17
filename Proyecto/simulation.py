@@ -5,6 +5,8 @@ from Communication.bus import Bus
 from Cache.cacheController import CacheController
 from CPU.instruction import Instruction
 import logging
+from Timing.timing import Timing
+
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
 
 
@@ -26,7 +28,8 @@ class Simulation:
         self.number_of_cpus = 4
         self.number_of_blocks_per_cache = 4
         self.number_of_memory_lines = 8
-        self.main_memory = MainMemory()
+        self.timing = Timing(base_timing=1)
+        self.main_memory = MainMemory(self.timing)
         self.cache_controllers = []
         self.cpus = []
 
@@ -34,14 +37,13 @@ class Simulation:
             logger = setup_logger(str(i) + "_logger", str(i) + '.log')
 
             cache: Cache = Cache(i)
-            cache_controller: CacheController = CacheController(cache, logger)
-            cpu = CPU(i, cache_controller, logger)
-            cpu.start_execution()
+            cache_controller: CacheController = CacheController(cache, logger, self.timing)
+            cpu = CPU(i, cache_controller, logger, self.timing)
 
             self.cache_controllers.append(cache_controller)
             self.cpus.append(cpu)
-            
-        logger = setup_logger("bus_logger",  'bus.log')
+
+        logger = setup_logger("bus_logger", 'bus.log')
 
         self.bus = Bus(self.cache_controllers, self.main_memory, logger)
 
@@ -50,9 +52,6 @@ class Simulation:
 
     def get_cache_content(self, cache_number: int) -> [CacheLine]:
         return self.cache_controllers[cache_number].cache.obtain_content()
-
-    def get_cache_status(self, cache_number: int) -> str:
-        return self.cache_controllers[cache_number].current_process
 
     def get_cpu_instruction(self, cpu_number: int) -> str:
         return self.cpus[cpu_number].get_most_recent_instruction_as_string()
@@ -76,4 +75,3 @@ class Simulation:
         self.bus.start_execution()
         for cpu in self.cpus:
             cpu.start_execution()
-
