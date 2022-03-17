@@ -30,12 +30,12 @@ class InstructionGenerator:
 
     def select_instruction(self) -> InstructionType:
         sample = np.random.uniform(low=0, high=self.number_of_operations)
-        operation_index = int(sample)
+        operation_index = 2
         return self.operations[operation_index]
 
     def select_address(self) -> int:
         sample = np.random.uniform(low=0, high=2**self.blocks_bits)
-        address = int(sample)
+        address = 0
         return address
 
     def select_new_value(self) -> str:

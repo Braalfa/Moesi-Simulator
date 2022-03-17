@@ -9,6 +9,7 @@ import logging
 from Timing.timing import Timing
 from CPU.instruction import InstructionType
 
+
 class CacheController:
     def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing):
         self.cache = cache
@@ -18,7 +19,7 @@ class CacheController:
         self.timing = timing
         self.messages_received = 0
         self.messages_accepted = 0
-        self.current_instruction_type: InstructionType|None = None
+        self.current_instruction_type: InstructionType | None = None
 
     def return_next_send_message(self):
         try:
@@ -30,6 +31,8 @@ class CacheController:
         line, state = self.cache.obtain_line_and_state(address)
         line.acquire_lock()
         self.current_instruction_type = InstructionType.WRITE
+        if state != State.I:
+            state = line.get_state()
         self.transition_by_cpu(state, line, CPUAction.WRITE, address, new_value)
         line.release_lock()
         self.current_instruction_type = None
@@ -38,6 +41,8 @@ class CacheController:
         line, state = self.cache.obtain_line_and_state(address)
         line.acquire_lock()
         self.current_instruction_type = InstructionType.READ
+        if state != State.I:
+            state = line.get_state()
         data = self.transition_by_cpu(state, line, CPUAction.READ, address)
         line.release_lock()
         self.current_instruction_type = None
