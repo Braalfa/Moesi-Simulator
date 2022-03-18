@@ -59,8 +59,8 @@ class Simulation:
     def set_next_instruction(self, next_instruction: Instruction):
         self.cpus[next_instruction.processor_number].set_next_instruction(next_instruction)
 
-    def get_status(self, cpu_number: int) -> str:
-        return self.cpus[cpu_number].current_status
+    def get_status(self, cache_number: int) -> str:
+        return self.cache_controllers[cache_number].status
 
     def continue_execution(self):
         for cpu in self.cpus:
@@ -78,3 +78,4 @@ class Simulation:
         self.bus.start_execution()
         for cpu in self.cpus:
             cpu.start_execution()
+            cpu.cache_controller.start_execution()

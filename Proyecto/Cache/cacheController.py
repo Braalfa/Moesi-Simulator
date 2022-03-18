@@ -1,3 +1,7 @@
+import threading
+from enum import Enum
+from threading import Lock
+
 from Enums.cpuActionEnum import CPUAction
 from Enums.stateEnum import State
 from Cache.cacheL1 import CacheLine
@@ -7,25 +11,70 @@ from Communication.messaging import MessageType
 import time
 import logging
 from Timing.timing import Timing
-from CPU.instruction import InstructionType
+from CPU.instruction import InstructionType, Instruction
+
+
+class CPUOperationStatus(Enum):
+    FINISHED = 0
+    PROCESSING = 1
 
 
 class CacheController:
     def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing):
         self.cache = cache
+        self.unprocessed_messages_queue = []
         self.received_messages_queue = []
         self.send_messages_queue = []
         self.logger = logger
         self.timing = timing
         self.messages_received = 0
         self.messages_accepted = 0
+        self.next_cpu_operation: Instruction | None = None
+        self.cpu_operation_lock = Lock()
         self.current_instruction_type: InstructionType | None = None
+        self.execute_cache_flag = True
+        self.status = "Idle"
 
     def return_next_send_message(self):
         try:
             return self.send_messages_queue.pop(0)
         except IndexError:
             return None
+
+    def start_execution(self):
+        thread = threading.Thread(target=self.run, args=())
+        thread.start()
+        return thread
+
+    def run(self):
+        while self.execute_cache_flag:
+            self.process_cpu_operation()
+            self.process_pending_messages()
+            self.status = "Idle"
+
+    def process_cpu_operation(self):
+        self.cpu_operation_lock.acquire()
+        if self.next_cpu_operation is not None:
+            self.status = "Running CPU Instruction"
+            if self.next_cpu_operation.instruction_type == InstructionType.WRITE:
+                self.write_request(self.next_cpu_operation.address, self.next_cpu_operation.value)
+            elif self.next_cpu_operation.instruction_type == InstructionType.READ:
+                self.read_request(self.next_cpu_operation.address)
+            self.next_cpu_operation = None
+        self.cpu_operation_lock.release()
+
+    def process_pending_messages(self):
+        while len(self.unprocessed_messages_queue) > 0:
+            self.status = "Processing Bus Messages"
+            message = self.unprocessed_messages_queue.pop(0)
+            line = self.cache.obtain_line_by_address(message.address)
+            if line is not None:
+                self.logger.info(
+                    "Transitioning on skipped message : " + message.__str__() + " Line " + str(line.get_address()))
+                self.transition_by_bus(message, line)
+            else:
+                self.logger.info(
+                    "Skipped, message was irrelevant message : " + message.__str__() )
 
     def write_request(self, address: int, new_value: str):
         line, state = self.cache.obtain_line_and_state(address)
@@ -65,13 +114,16 @@ class CacheController:
 
     def transition_by_cpu_from_I(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
+            self.received_messages_queue = []
             self.broadcast_read_miss(address)
             sharers_found = self.are_there_sharers(address)
             if not sharers_found:
+                self.received_messages_queue = []
                 self.read_from_memory(address, line)
             else:
                 data = self.read_data_from_bus(address)
                 if data is None:
+                    self.received_messages_queue = []
                     self.read_from_memory(address, line)
                 else:
                     next_state = State.S
@@ -145,28 +197,17 @@ class CacheController:
 
     def receive_message_from_bus(self, message: Message):
         self.logger.info("Message received from bus; message:" + message.__str__())
-        # self.logger.info("Accepted msgs: " + str(self.messages_received) + "Received msgs: " + str(self.messages_accepted))
-        self.messages_received += 1
         if message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
-            self.messages_accepted += 1
-            self.transition_by_bus_aux(message)
+            self.unprocessed_messages_queue.append(message)
         else:
-            self.messages_accepted += 1
             self.received_messages_queue.append(message)
-
-    def transition_by_bus_aux(self, message: Message):
-        line = self.cache.obtain_line_by_address(message.address)
-        if line is not None:
-            line.acquire_lock()
-            if line.get_address() == message.address:
-                self.transition_by_bus(message, line)
-            line.release_lock()
 
     def transition_by_bus(self, message: Message, line: CacheLine):
         self.timing.cache_wait()
         current_state = line.get_state()
-        self.logger.info("Transition by bus ; current state: " + str(current_state))
+        self.logger.info("Transition by bus ; current state: " + str(current_state) + " Message : "+message.__str__()
+                         + " Address " + str(line.get_address()))
         if current_state == State.I:
             self.logger.info("Transition by bus; next_state: " + str(State.I))
             pass
