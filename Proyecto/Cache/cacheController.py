@@ -304,10 +304,10 @@ class CacheController:
         self.send_message_to_bus(MessageType.SHARED_RESPONSE, address, destination=destination)
 
     def supply_data_to_bus(self, address: int, data: str, destination: int):
-        self.send_message_to_bus(MessageType.DATA_RESPONSE, address, data=data, destination=destination)
+        self.send_message_to_bus(MessageType.CACHE_DATA_RESPONSE, address, data=data, destination=destination)
 
     def read_cache_response_from_bus(self, address: int) -> Message | None:
-        message = self.await_message_from_bus(MessageType.DATA_RESPONSE,
+        message = self.await_message_from_bus(MessageType.CACHE_DATA_RESPONSE,
                                               address, max_time=self.timing.max_bus_data_timing)
         if message is not None:
             return message
@@ -315,8 +315,9 @@ class CacheController:
             self.logger.error("No data was received from the caches")
             return None
 
-    def read_memory_response_from_bus(self, address: int) -> str:
-        message = self.await_message_from_bus(MessageType.DATA_RESPONSE, address, max_time=self.timing.infinite_timing)
+    def read_memory_response_from_bus(self, address: int) -> str | None:
+        message = self.await_message_from_bus(MessageType.MEMORY_DATA_RESPONSE,
+                                              address, max_time=self.timing.infinite_timing)
         if message is not None:
             return message.data
         else:
@@ -324,7 +325,7 @@ class CacheController:
             return None
 
     def await_message_from_bus(self, message_type: MessageType,
-                               address: int, max_time: int = 10) -> Message | None:
+                               address: int, max_time: float = 10) -> Message | None:
         start = time.time()
         while time.time() - start < max_time:
             for i in range(len(self.received_messages_queue)):

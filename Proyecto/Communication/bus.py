@@ -55,7 +55,7 @@ class Bus:
 
     def deliver_data_from_memory(self, incoming_message):
         data = self.main_memory.read(incoming_message.address)
-        response_message = Message(MessageType.DATA_RESPONSE,
+        response_message = Message(MessageType.MEMORY_DATA_RESPONSE,
                                    destination=incoming_message.origin,
                                    address=incoming_message.address,
                                    data=data)
