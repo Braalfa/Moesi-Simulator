@@ -68,22 +68,26 @@ class CacheController:
             self.broadcast_read_miss(address)
             sharers_found = self.are_there_sharers(address)
             if not sharers_found:
-                self.ask_data_from_memory(address)
-                data = self.read_memory_response_from_bus(address)
-                next_state = State.E
-                self.overwrite_existing_line(line, address, data, next_state)
+                self.read_from_memory(address, line)
             else:
                 data = self.read_data_from_bus(address)
                 if data is None:
-                    self.logger.error("aqui hay que hacer que se meta al primer caso del if no sharers found")
-                next_state = State.S
-                self.overwrite_existing_line(line, address, data, next_state)
+                    self.read_from_memory(address, line)
+                else:
+                    next_state = State.S
+                    self.overwrite_existing_line(line, address, data, next_state)
             return line.get_data()
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address)
             next_state = State.M
             self.overwrite_existing_line(line, address, new_value, next_state)
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
+
+    def read_from_memory(self, address, line):
+        self.ask_data_from_memory(address)
+        data = self.read_memory_response_from_bus(address)
+        next_state = State.E
+        self.overwrite_existing_line(line, address, data, next_state)
 
     def overwrite_existing_line(self, line: CacheLine, address: int, data: str, state: State):
         self.evict(line)
@@ -236,7 +240,8 @@ class CacheController:
         self.send_message_to_bus(MessageType.WRITE_BACK, address, data=new_value)
 
     def are_there_sharers(self, address: int):
-        message = self.await_message_from_bus(MessageType.SHARED_RESPONSE, address)
+        message = self.await_message_from_bus(MessageType.SHARED_RESPONSE, address,
+                                              max_time=self.timing.await_sharers_timing)
         if message is not None:
             return True
         else:
@@ -249,7 +254,8 @@ class CacheController:
         self.send_message_to_bus(MessageType.DATA_RESPONSE, address, data=data, destination=destination)
 
     def read_data_from_bus(self, address: int):
-        message = self.await_message_from_bus(MessageType.DATA_RESPONSE, address)
+        message = self.await_message_from_bus(MessageType.DATA_RESPONSE,
+                                              address, max_time=self.timing.max_bus_data_timing)
         if message is not None:
             return message.data
         else:
@@ -257,7 +263,7 @@ class CacheController:
             return None
 
     def read_memory_response_from_bus(self, address: int):
-        message = self.await_message_from_bus(MessageType.DATA_RESPONSE, address, max_time=30)
+        message = self.await_message_from_bus(MessageType.DATA_RESPONSE, address, max_time=self.timing.infinite_timing)
         if message is not None:
             return message.data
         else:
