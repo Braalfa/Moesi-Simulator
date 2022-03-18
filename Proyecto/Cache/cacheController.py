@@ -61,6 +61,7 @@ class CacheController:
             elif self.next_cpu_operation.instruction_type == InstructionType.READ:
                 self.read_request(self.next_cpu_operation.address)
             self.next_cpu_operation = None
+
         self.cpu_operation_lock.release()
 
     def process_pending_messages(self):
@@ -74,26 +75,22 @@ class CacheController:
                 self.transition_by_bus(message, line)
             else:
                 self.logger.info(
-                    "Skipped, message was irrelevant message : " + message.__str__() )
+                    "Skipped, message was irrelevant message : " + message.__str__())
 
     def write_request(self, address: int, new_value: str):
         line, state = self.cache.obtain_line_and_state(address)
-        line.acquire_lock()
         self.current_instruction_type = InstructionType.WRITE
         if state != State.I:
             state = line.get_state()
         self.transition_by_cpu(state, line, CPUAction.WRITE, address, new_value)
-        line.release_lock()
         self.current_instruction_type = None
 
     def read_request(self, address: int):
         line, state = self.cache.obtain_line_and_state(address)
-        line.acquire_lock()
         self.current_instruction_type = InstructionType.READ
         if state != State.I:
             state = line.get_state()
         data = self.transition_by_cpu(state, line, CPUAction.READ, address)
-        line.release_lock()
         self.current_instruction_type = None
         return data
 
@@ -117,17 +114,20 @@ class CacheController:
             self.received_messages_queue = []
             self.broadcast_read_miss(address)
             sharers_found = self.are_there_sharers(address)
+            if self.cache.cache_number == 0:
+                pass
             if not sharers_found:
                 self.received_messages_queue = []
                 self.read_from_memory(address, line)
             else:
-                data = self.read_data_from_bus(address)
-                if data is None:
+                message = self.read_cache_response_from_bus(address)
+                if message is None:
                     self.received_messages_queue = []
                     self.read_from_memory(address, line)
                 else:
                     next_state = State.S
-                    self.overwrite_existing_line(line, address, data, next_state)
+                    self.overwrite_existing_line(line, address, message.data, next_state)
+                    self.remove_write_back_messages(address, message.origin)
             return line.get_data()
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address)
@@ -146,6 +146,18 @@ class CacheController:
         line.set_state(state)
         line.set_address(address)
         line.set_data(data)
+
+    def remove_write_back_messages(self, address: int, origin: int):
+        no_removed_messages = []
+        for i in range(len(self.unprocessed_messages_queue)):
+            message = self.unprocessed_messages_queue[i]
+            if message.message_type == MessageType.WRITE_MISS \
+                    and message.address == address\
+                    and message.origin == origin:
+                pass
+            else:
+                no_removed_messages.append(message)
+        self.unprocessed_messages_queue = no_removed_messages
 
     def transition_by_cpu_from_S(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
@@ -273,8 +285,8 @@ class CacheController:
         self.send_message_to_bus(MessageType.WRITE_MISS, address)
 
     def ask_data_from_memory(self, address: int):
-        self.send_message_to_bus(MessageType.REQUEST_FROM_MEMORY, address)
         self.timing.memory_wait()
+        self.send_message_to_bus(MessageType.REQUEST_FROM_MEMORY, address)
 
     def ask_write_back(self, address: int, new_value: str):
         self.timing.memory_wait()
@@ -294,16 +306,16 @@ class CacheController:
     def supply_data_to_bus(self, address: int, data: str, destination: int):
         self.send_message_to_bus(MessageType.DATA_RESPONSE, address, data=data, destination=destination)
 
-    def read_data_from_bus(self, address: int):
+    def read_cache_response_from_bus(self, address: int) -> Message | None:
         message = self.await_message_from_bus(MessageType.DATA_RESPONSE,
                                               address, max_time=self.timing.max_bus_data_timing)
         if message is not None:
-            return message.data
+            return message
         else:
             self.logger.error("No data was received from the caches")
             return None
 
-    def read_memory_response_from_bus(self, address: int):
+    def read_memory_response_from_bus(self, address: int) -> str:
         message = self.await_message_from_bus(MessageType.DATA_RESPONSE, address, max_time=self.timing.infinite_timing)
         if message is not None:
             return message.data
