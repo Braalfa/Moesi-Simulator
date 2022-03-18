@@ -22,8 +22,8 @@ class CPUOperationStatus(Enum):
 class CacheController:
     def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing):
         self.cache = cache
-        self.unprocessed_messages_queue = []
-        self.received_messages_queue = []
+        self.unexpected_messages_queue = []
+        self.expected_messages_queue = []
         self.send_messages_queue = []
         self.logger = logger
         self.timing = timing
@@ -65,9 +65,9 @@ class CacheController:
         self.cpu_operation_lock.release()
 
     def process_pending_messages(self):
-        while len(self.unprocessed_messages_queue) > 0:
+        while len(self.unexpected_messages_queue) > 0:
             self.status = "Processing Bus Messages"
-            message = self.unprocessed_messages_queue.pop(0)
+            message = self.unexpected_messages_queue.pop(0)
             line = self.cache.obtain_line_by_address(message.address)
             if line is not None:
                 self.logger.info(
@@ -111,18 +111,18 @@ class CacheController:
 
     def transition_by_cpu_from_I(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
-            self.received_messages_queue = []
+            self.expected_messages_queue = []
             self.broadcast_read_miss(address)
             sharers_found = self.are_there_sharers(address)
             if self.cache.cache_number == 0:
                 pass
             if not sharers_found:
-                self.received_messages_queue = []
+                self.expected_messages_queue = []
                 self.read_from_memory(address, line)
             else:
                 message = self.read_cache_response_from_bus(address)
                 if message is None:
-                    self.received_messages_queue = []
+                    self.expected_messages_queue = []
                     self.read_from_memory(address, line)
                 else:
                     next_state = State.S
@@ -149,15 +149,15 @@ class CacheController:
 
     def remove_write_back_messages(self, address: int, origin: int):
         no_removed_messages = []
-        for i in range(len(self.unprocessed_messages_queue)):
-            message = self.unprocessed_messages_queue[i]
+        for i in range(len(self.unexpected_messages_queue)):
+            message = self.unexpected_messages_queue[i]
             if message.message_type == MessageType.WRITE_MISS \
                     and message.address == address\
                     and message.origin == origin:
                 pass
             else:
                 no_removed_messages.append(message)
-        self.unprocessed_messages_queue = no_removed_messages
+        self.unexpected_messages_queue = no_removed_messages
 
     def transition_by_cpu_from_S(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
@@ -209,9 +209,9 @@ class CacheController:
         self.logger.info("Message received from bus; message:" + message.__str__())
         if message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
-            self.unprocessed_messages_queue.append(message)
+            self.unexpected_messages_queue.append(message)
         else:
-            self.received_messages_queue.append(message)
+            self.expected_messages_queue.append(message)
 
     def transition_by_bus(self, message: Message, line: CacheLine):
         self.timing.cache_wait()
@@ -328,10 +328,10 @@ class CacheController:
                                address: int, max_time: float = 10) -> Message | None:
         start = time.time()
         while time.time() - start < max_time:
-            for i in range(len(self.received_messages_queue)):
-                message = self.received_messages_queue[i]
+            for i in range(len(self.expected_messages_queue)):
+                message = self.expected_messages_queue[i]
                 if message.message_type == message_type and message.address == address:
-                    self.received_messages_queue.pop(i)
+                    self.expected_messages_queue.pop(i)
                     return message
         return None
 
