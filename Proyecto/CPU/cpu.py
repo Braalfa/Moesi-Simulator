@@ -1,7 +1,7 @@
 from CPU.instructionGenerator import InstructionGenerator
 from CPU.instruction import Instruction
 from CPU.instruction import InstructionType
-from Cache.cacheController import CacheController
+from Cache.cacheController import CacheController, CPUOperationStatus
 import time
 import threading
 import logging
@@ -80,10 +80,15 @@ class CPU:
     def execute_instruction(self, instruction: Instruction):
         if instruction.instruction_type == InstructionType.CALC:
             self.execute_calculation()
-        elif instruction.instruction_type == InstructionType.READ:
-            self.execute_read(instruction.address)
-        elif instruction.instruction_type == InstructionType.WRITE:
-            self.execute_write(instruction.address, instruction.value)
+        else:
+            self.assign_next_operation_to_cache(instruction)
+
+    def assign_next_operation_to_cache(self, instruction: Instruction):
+        while self.cache_controller.next_cpu_operation is not None:
+            pass
+        self.cache_controller.cpu_operation_lock.acquire()
+        self.cache_controller.next_cpu_operation = instruction
+        self.cache_controller.cpu_operation_lock.release()
 
     def execute_calculation(self):
         self.timing.execute_wait()
