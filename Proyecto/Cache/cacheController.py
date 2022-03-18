@@ -151,10 +151,6 @@ class CacheController:
 
     def transition_by_bus_aux(self, message: Message):
         line = self.cache.obtain_line_by_address(message.address)
-        if line is not None and line.is_locked() and \
-                message.message_type == MessageType.WRITE_MISS \
-                and self.current_instruction_type == InstructionType.WRITE:
-            return
         if line is not None:
             line.acquire_lock()
             if line.get_address() == message.address:
