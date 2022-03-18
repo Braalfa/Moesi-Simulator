@@ -18,6 +18,7 @@ class Message:
         self.destination = destination
         self.address = address
         self.data = data
+        self.valid = True
 
     def __str__(self):
         string = str(self.message_type)

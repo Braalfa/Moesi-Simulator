@@ -1,3 +1,5 @@
+import copy
+
 from Enums.cpuActionEnum import CPUAction
 from Enums.stateEnum import State
 from Cache.cacheL1 import CacheLine
@@ -14,6 +16,7 @@ class CacheController:
     def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing):
         self.cache = cache
         self.received_messages_queue = []
+        self.received_messages_queue2 = []
         self.send_messages_queue = []
         self.logger = logger
         self.timing = timing
@@ -34,6 +37,7 @@ class CacheController:
         if state != State.I:
             state = line.get_state()
         self.transition_by_cpu(state, line, CPUAction.WRITE, address, new_value)
+        self.delete_outdated_invalidations(line.address)
         line.release_lock()
         self.current_instruction_type = None
 
@@ -47,6 +51,14 @@ class CacheController:
         line.release_lock()
         self.current_instruction_type = None
         return data
+
+    def delete_outdated_invalidations(self, address: str):
+        number_of_messages = len(self.received_messages_queue2)
+        for i in range(number_of_messages):
+            message = self.received_messages_queue2.pop(0)
+            if message.message_type == MessageType.WRITE_MISS \
+                    and message.address == address:
+                message.valid = False
 
     def transition_by_cpu(self, current_state: State, line: CacheLine,
                           action: CPUAction, address: int, new_value: str = None):
@@ -141,9 +153,11 @@ class CacheController:
         self.logger.info("Message received from bus; message:" + message.__str__())
         # self.logger.info("Accepted msgs: " + str(self.messages_received) + "Received msgs: " + str(self.messages_accepted))
         self.messages_received += 1
+        message = copy.deepcopy(message)
         if message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
             self.messages_accepted += 1
+            self.received_messages_queue2.append(message)
             self.transition_by_bus_aux(message)
         else:
             self.messages_accepted += 1
@@ -151,13 +165,10 @@ class CacheController:
 
     def transition_by_bus_aux(self, message: Message):
         line = self.cache.obtain_line_by_address(message.address)
-        if line is not None and line.is_locked() and \
-                message.message_type == MessageType.WRITE_MISS \
-                and self.current_instruction_type == InstructionType.WRITE:
-            return
         if line is not None:
             line.acquire_lock()
-            if line.get_address() == message.address:
+            if line.get_address() == message.address \
+                    and message.valid:
                 self.transition_by_bus(message, line)
             line.release_lock()
 
