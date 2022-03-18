@@ -8,7 +8,7 @@ class Timing:
         self.memory_timing = self.base_timing*10
         self.cache_timing = self.base_timing*2
         self.max_bus_data_timing = self.memory_timing
-        self.await_sharers_timing = self.memory_timing
+        self.await_sharers_timing = self.memory_timing*1.5
         self.infinite_timing = 1000
 
     def cache_wait(self):
