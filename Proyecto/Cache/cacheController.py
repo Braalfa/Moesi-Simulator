@@ -88,6 +88,8 @@ class CacheController:
         data = self.read_memory_response_from_bus(address)
         next_state = State.E
         self.overwrite_existing_line(line, address, data, next_state)
+        # Write miss is broadcasted to invalidate other competing lines
+        self.broadcast_write_miss(address)
 
     def overwrite_existing_line(self, line: CacheLine, address: int, data: str, state: State):
         self.evict(line)
