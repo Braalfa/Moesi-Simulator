@@ -1,8 +1,54 @@
+import random
+
 import numpy as np
 import math
 from CPU.instruction import InstructionType
 from CPU.instruction import Instruction
+import scipy.integrate as integrate
 
+
+class NormalDistribution:
+    def __init__(self, mean=0, standard_deviation=1, linspace_range=1.5):
+        self.mean = mean
+        self.standard_deviation = standard_deviation
+        self.linspace_range = linspace_range
+        self.f = self.obtain_inverse_function()
+
+    def obtain_probability_density(self, value):
+        denominator = (2 * math.pi * self.standard_deviation ** 2) ** .5
+        numerator = math.exp(-(float(value) - float(self.mean)) ** 2 / (2 * self.standard_deviation ** 2))
+        return numerator / denominator
+
+    def cumulative_distribution(self, value):
+        return integrate.quad(self.obtain_probability_density, float('-inf'), value)
+
+    def obtain_inverse_function(self):
+        function = [(self.cumulative_distribution(val)[0], val) for val in
+                    np.linspace(-self.linspace_range, self.linspace_range, 200)]
+        return function
+
+    def obtain_single_sample(self, probability):
+        if probability < self.f[0][0]:
+            return self.f[0][1]
+        elif probability > self.f[-1][0]:
+            return self.f[-1][1]
+        for f_item in self.f:
+            if probability < f_item[0]:
+                return f_item[1]
+
+    def obtain_samples(self, quantity):
+        return [self.obtain_single_sample(random.random()) for _ in range(quantity)]
+
+    def obtain_number(self, minimum: int, maximum: int):
+        sample = self.obtain_samples(1)[0]
+        sample += self.linspace_range
+        number = sample*(maximum-minimum+0.98)/(2*self.linspace_range) + minimum-0.49
+        return round(number)
+
+    def number_probability(self, number, minimum, maximum):
+        small = (number-0.49 - (minimum-0.49))*(2*1.5)/(maximum-minimum+0.98)-1.5
+        big = (number+0.49 - (minimum - 0.49)) * (2 * 1.5) / (maximum - minimum +0.98) - 1.5
+        return integrate.quad(self.obtain_probability_density, small, big)[0]
 
 # TODO: Replace the random generators
 class InstructionGenerator:
@@ -13,6 +59,7 @@ class InstructionGenerator:
         self.number_of_operations = len(self.operations)
         self.block_width_hexadecimal = block_width_hexadecimal
         self.blocks_bits = math.ceil(math.log(number_of_memory_blocks, 2))
+        self.normal_distribution = NormalDistribution()
 
     def generate_instruction(self) -> Instruction:
         operation = self.select_instruction()
@@ -39,7 +86,7 @@ class InstructionGenerator:
         return self.operations[operation_index]
 
     def select_address(self) -> int:
-        sample = np.random.uniform(low=0, high=2**self.blocks_bits)
+        sample = np.random.uniform(low=0, high=2 ** self.blocks_bits)
         address = int(sample)
         return address
 
