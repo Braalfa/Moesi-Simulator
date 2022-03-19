@@ -93,7 +93,12 @@ class Cache:
     def select_line_to_overwrite(self, address: int):
         set_number = address % 2
         memory_by_set = [line for line in self.memory if line.line_number // 2 == set_number]
-        memory_index = randint(0, 1)
+        if memory_by_set[0].state == State.I:
+            memory_index = 0
+        elif memory_by_set[1].state == State.I:
+            memory_index = 1
+        else:
+            memory_index = randint(0, 1)
         selected_line = memory_by_set[memory_index]
         return selected_line
 
