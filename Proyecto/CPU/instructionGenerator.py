@@ -81,16 +81,17 @@ class InstructionGenerator:
         return instruction
 
     def select_instruction(self) -> InstructionType:
-        sample = np.random.uniform(low=0, high=self.number_of_operations)
-        operation_index = int(sample)
+        sample = self.normal_distribution.obtain_number(0, self.number_of_operations-1)
+        operation_index = sample
         return self.operations[operation_index]
 
     def select_address(self) -> int:
-        sample = np.random.uniform(low=0, high=2 ** self.blocks_bits)
-        address = int(sample)
+        sample = self.normal_distribution.obtain_number(0, 2 ** self.blocks_bits-1)
+        address = sample
         return address
 
     def select_new_value(self) -> str:
-        sample = np.random.uniform(low=0, high=16, size=self.block_width_hexadecimal)
+        sample = [self.normal_distribution.obtain_number(0, 15) for _ in range(self.block_width_hexadecimal)]
         value = ''.join([hex(int(i))[2:] for i in sample])
         return value
+sle
