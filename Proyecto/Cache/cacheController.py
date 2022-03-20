@@ -30,10 +30,17 @@ class CacheController:
         self.messages_received = 0
         self.messages_accepted = 0
         self.next_cpu_operation: Instruction | None = None
+        self.most_recent_instruction: Instruction | None = None
         self.cpu_operation_lock = Lock()
         self.current_instruction_type: InstructionType | None = None
         self.execute_cache_flag = True
         self.status = "Idle"
+
+    def get_most_recent_instruction_as_string(self):
+        if self.most_recent_instruction is not None:
+            return self.most_recent_instruction.as_string_instruction()
+        else:
+            return ''
 
     def return_next_send_message(self):
         try:
@@ -55,13 +62,13 @@ class CacheController:
     def process_cpu_operation(self):
         self.cpu_operation_lock.acquire()
         if self.next_cpu_operation is not None:
+            self.most_recent_instruction = self.next_cpu_operation
             self.status = "Running CPU Instruction"
             if self.next_cpu_operation.instruction_type == InstructionType.WRITE:
                 self.write_request(self.next_cpu_operation.address, self.next_cpu_operation.value)
             elif self.next_cpu_operation.instruction_type == InstructionType.READ:
                 self.read_request(self.next_cpu_operation.address)
             self.next_cpu_operation = None
-
         self.cpu_operation_lock.release()
 
     def process_pending_messages(self):

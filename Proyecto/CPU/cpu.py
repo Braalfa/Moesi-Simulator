@@ -21,7 +21,6 @@ class CPU:
         self.calculation_time = calculation_time
         self.logger = logger
         self.timing = timing
-        self.most_recent_instruction: Instruction | None = None
         self.execute_continually = False
         self.execute_once = False
         self.next_instruction = None
@@ -52,7 +51,6 @@ class CPU:
                 self.logger.info("Running on processor " + str(self.processor_number))
                 instruction = self.obtain_next_instruction()
                 self.logger.info("Instruction on processor: " + str(self.processor_number) + " instruction: " + instruction.__str__())
-                self.update_most_recent_instruction(instruction)
                 self.execute_instruction(instruction)
             else:
                 self.current_status = "Waiting"
@@ -65,9 +63,6 @@ class CPU:
             return True
         else:
             return False
-
-    def update_most_recent_instruction(self, instruction):
-        self.most_recent_instruction = instruction
 
     def obtain_next_instruction(self) -> Instruction:
         if self.next_instruction is None:
@@ -101,9 +96,4 @@ class CPU:
         self.timing.execute_wait()
         self.cache_controller.write_request(address, new_value)
 
-    def get_most_recent_instruction_as_string(self):
-        if self.most_recent_instruction is not None:
-            return self.most_recent_instruction.as_string_instruction()
-        else:
-            return ''
         

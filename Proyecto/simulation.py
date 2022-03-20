@@ -54,7 +54,7 @@ class Simulation:
         return self.cache_controllers[cache_number].cache.obtain_content()
 
     def get_cpu_instruction(self, cpu_number: int) -> str:
-        return self.cpus[cpu_number].get_most_recent_instruction_as_string()
+        return self.cache_controllers[cpu_number].get_most_recent_instruction_as_string()
 
     def set_next_instruction(self, next_instruction: Instruction):
         self.cpus[next_instruction.processor_number].set_next_instruction(next_instruction)

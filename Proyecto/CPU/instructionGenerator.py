@@ -72,12 +72,7 @@ class InstructionGenerator:
         elif operation == InstructionType.WRITE:
             address = self.select_address()
             value = self.select_new_value()
-        if self.processor_number == 0:
-            instruction = Instruction(InstructionType.READ, self.processor_number, 0, None)
-        elif self.processor_number == 1:
-            instruction = Instruction(InstructionType.WRITE, self.processor_number, 0, "abcd")
-        else:
-            instruction = Instruction(operation, self.processor_number, address, value)
+        instruction = Instruction(operation, self.processor_number, address, value)
         return instruction
 
     def select_instruction(self) -> InstructionType:
@@ -94,4 +89,3 @@ class InstructionGenerator:
         sample = [self.normal_distribution.obtain_number(0, 15) for _ in range(self.block_width_hexadecimal)]
         value = ''.join([hex(int(i))[2:] for i in sample])
         return value
-sle
