@@ -71,7 +71,8 @@ class Bus:
 
     def obtain_cache_destinations(self, message: Message):
         if message.message_type == MessageType.READ_MISS \
-                or message.message_type == MessageType.WRITE_MISS:
+                or message.message_type == MessageType.WRITE_MISS\
+                or message.message_type == MessageType.MEMORY_DATA_RESPONSE:
             cache_destinations = [cache_controller for cache_controller in self.cache_controllers
                                   if cache_controller.cache.cache_number != message.origin]
         else:

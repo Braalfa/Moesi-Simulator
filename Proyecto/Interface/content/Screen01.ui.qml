@@ -11,8 +11,8 @@ import "../Interface" as Interface
 
 Rectangle {
     id: rectangle
-    width: 1400
-    height: 900
+    width: 1310
+    height: 700
     color: "#ffffff"
     property alias state0_0_text: state0_0.text
     property alias state1_0_text: state1_0.text
@@ -101,8 +101,8 @@ Rectangle {
 
     Text {
         id: current_process_label0
-        x: 107
-        y: 324
+        x: 72
+        y: 294
         width: 136
         height: 26
         text: qsTr("State:")
@@ -113,8 +113,8 @@ Rectangle {
 
     Text {
         id: current_process0
-        x: 243
-        y: 325
+        x: 125
+        y: 294
         width: 136
         height: 26
         text: qsTr("state")
@@ -125,8 +125,8 @@ Rectangle {
 
     Text {
         id: processor0
-        x: 150
-        y: 202
+        x: 106
+        y: 125
         text: qsTr("Processor 0")
         font.pixelSize: 26
         renderType: Text.QtRendering
@@ -136,8 +136,8 @@ Rectangle {
     
     Text {
         id: cache0
-        x: 165
-        y: 392
+        x: 120
+        y: 241
         text: qsTr("Cache 0")
         font.pixelSize: 26
         font.bold: true
@@ -146,8 +146,8 @@ Rectangle {
     
     Grid {
         id: cache1_grid
-        x: 62
-        y: 401
+        x: 18
+        y: 324
         width: 350
         height: 288
         opacity: 1
@@ -302,8 +302,8 @@ Rectangle {
     
     Grid {
         id: last_execution_grid
-        x: 69
-        y: 277
+        x: 34
+        y: 182
         width: 318
         height: 36
         scale: 0.7
@@ -333,8 +333,8 @@ Rectangle {
     
     Grid {
         id: process_grid0
-        x: 101
-        y: 319
+        x: 66
+        y: 289
         width: 318
         height: 36
         scale: 0.7
@@ -345,8 +345,8 @@ Rectangle {
     
     Text {
         id: processor1
-        x: 474
-        y: 196
+        x: 431
+        y: 119
         text: qsTr("Processor 1")
         font.pixelSize: 26
         font.bold: true
@@ -355,8 +355,8 @@ Rectangle {
     
     Text {
         id: cache1
-        x: 489
-        y: 386
+        x: 453
+        y: 244
         text: qsTr("Cache 1")
         font.pixelSize: 26
         font.bold: true
@@ -365,8 +365,8 @@ Rectangle {
     
     Grid {
         id: cache1_grid1
-        x: 386
-        y: 396
+        x: 343
+        y: 319
         width: 350
         height: 288
         opacity: 1
@@ -519,8 +519,8 @@ Rectangle {
     
     Grid {
         id: last_execution_grid1
-        x: 393
-        y: 271
+        x: 350
+        y: 182
         width: 318
         height: 36
         scale: 0.7
@@ -548,8 +548,8 @@ Rectangle {
     
     Text {
         id: processor2
-        x: 790
-        y: 199
+        x: 747
+        y: 122
         text: qsTr("Processor 2")
         font.pixelSize: 26
         font.bold: true
@@ -558,8 +558,8 @@ Rectangle {
     
     Text {
         id: cache2
-        x: 805
-        y: 389
+        x: 769
+        y: 241
         text: qsTr("Cache 2")
         font.pixelSize: 26
         font.bold: true
@@ -568,8 +568,8 @@ Rectangle {
     
     Grid {
         id: cache1_grid2
-        x: 702
-        y: 399
+        x: 659
+        y: 322
         width: 350
         height: 288
         opacity: 1
@@ -722,8 +722,8 @@ Rectangle {
     
     Grid {
         id: last_execution_grid2
-        x: 709
-        y: 274
+        x: 664
+        y: 182
         width: 318
         height: 36
         scale: 0.7
@@ -744,6 +744,7 @@ Rectangle {
             height: 26
             text: qsTr("Instruction")
             font.pixelSize: 20
+            horizontalAlignment: Text.AlignLeft
             font.bold: false
         }
         columns: 2
@@ -751,8 +752,8 @@ Rectangle {
     
     Text {
         id: processor3
-        x: 1103
-        y: 198
+        x: 1060
+        y: 121
         text: qsTr("Processor 3")
         font.pixelSize: 26
         font.bold: true
@@ -761,8 +762,8 @@ Rectangle {
     
     Text {
         id: cache3
-        x: 1118
-        y: 388
+        x: 1082
+        y: 244
         text: qsTr("Cache 3")
         font.pixelSize: 26
         font.bold: true
@@ -771,8 +772,8 @@ Rectangle {
     
     Grid {
         id: cache1_grid3
-        x: 1015
-        y: 398
+        x: 972
+        y: 321
         width: 350
         height: 288
         opacity: 1
@@ -925,8 +926,8 @@ Rectangle {
     
     Grid {
         id: last_execution_grid3
-        x: 1031
-        y: 273
+        x: 977
+        y: 182
         width: 318
         height: 36
         scale: 0.7
@@ -947,6 +948,7 @@ Rectangle {
             height: 26
             text: qsTr("Instruction")
             font.pixelSize: 20
+            horizontalAlignment: Text.AlignLeft
             font.bold: false
         }
         columns: 2
@@ -954,8 +956,8 @@ Rectangle {
     
     Grid {
         id: memory_grid
-        x: 76
-        y: 86
+        x: 395
+        y: 589
         width: 543
         height: 91
         opacity: 1
@@ -1092,8 +1094,8 @@ Rectangle {
     
     ToolSeparator {
         id: toolSeparator
-        x: 368
-        y: 125
+        x: 325
+        y: 48
         width: 34
         height: 569
         scale: 0.7
@@ -1101,8 +1103,8 @@ Rectangle {
     
     ToolSeparator {
         id: toolSeparator1
-        x: 696
-        y: 116
+        x: 653
+        y: 39
         width: 34
         height: 569
         scale: 0.7
@@ -1110,8 +1112,8 @@ Rectangle {
     
     ToolSeparator {
         id: toolSeparator2
-        x: 1008
-        y: 116
+        x: 965
+        y: 39
         width: 34
         height: 569
         scale: 0.7
@@ -1119,9 +1121,9 @@ Rectangle {
     
     ToolSeparator {
         id: toolSeparator3
-        x: -155
-        y: 642
-        width: 1747
+        x: -166
+        y: 528
+        width: 1650
         height: 36
         scale: 0.7
         orientation: Qt.Horizontal
@@ -1129,8 +1131,8 @@ Rectangle {
     
     Text {
         id: memory_label
-        x: 309
-        y: 17
+        x: 618
+        y: 560
         text: qsTr("Memory")
         font.pixelSize: 26
         font.bold: true
@@ -1139,8 +1141,8 @@ Rectangle {
     
     Grid {
         id: buttons
-        x: 614
-        y: 55
+        x: 546
+        y: 14
         width: 250
         height: 47
         scale: 0.7
@@ -1240,8 +1242,8 @@ Rectangle {
     
     Grid {
         id: instruction_input_grid
-        x: 528
-        y: 117
+        x: 494
+        y: 62
         width: 392
         height: 36
         scale: 0.7
@@ -1269,9 +1271,9 @@ Rectangle {
 
     ToolSeparator {
         id: toolSeparator4
-        x: -155
-        y: 164
-        width: 1747
+        x: -166
+        y: 94
+        width: 1650
         height: 36
         scale: 0.7
         orientation: Qt.Horizontal
@@ -1279,8 +1281,8 @@ Rectangle {
 
     Text {
         id: current_process_label1
-        x: 431
-        y: 318
+        x: 394
+        y: 290
         width: 136
         height: 26
         text: qsTr("State:")
@@ -1291,8 +1293,8 @@ Rectangle {
 
     Text {
         id: current_process1
-        x: 567
-        y: 319
+        x: 447
+        y: 290
         width: 136
         height: 26
         text: qsTr("state")
@@ -1303,8 +1305,8 @@ Rectangle {
 
     Grid {
         id: process_grid1
-        x: 425
-        y: 313
+        x: 388
+        y: 285
         width: 318
         height: 36
         scale: 0.7
@@ -1315,8 +1317,8 @@ Rectangle {
 
     Text {
         id: current_process_label2
-        x: 755
-        y: 322
+        x: 712
+        y: 290
         width: 136
         height: 26
         text: qsTr("State:")
@@ -1327,8 +1329,8 @@ Rectangle {
 
     Text {
         id: current_process2
-        x: 891
-        y: 323
+        x: 767
+        y: 290
         width: 136
         height: 26
         text: qsTr("state")
@@ -1339,8 +1341,8 @@ Rectangle {
 
     Grid {
         id: process_grid2
-        x: 749
-        y: 317
+        x: 706
+        y: 285
         width: 318
         height: 36
         scale: 0.7
@@ -1351,8 +1353,8 @@ Rectangle {
 
     Text {
         id: current_process_label3
-        x: 1084
-        y: 319
+        x: 1028
+        y: 291
         width: 136
         height: 26
         text: qsTr("State:")
@@ -1363,8 +1365,8 @@ Rectangle {
 
     Text {
         id: current_process3
-        x: 1220
-        y: 320
+        x: 1076
+        y: 290
         width: 136
         height: 26
         text: qsTr("state")
@@ -1375,8 +1377,8 @@ Rectangle {
 
     Grid {
         id: process_grid3
-        x: 1078
-        y: 314
+        x: 1022
+        y: 286
         width: 318
         height: 36
         scale: 0.7
@@ -1396,6 +1398,6 @@ Rectangle {
 
 /*##^##
 Designer {
-    D{i:0;formeditorZoom:0.25}
+    D{i:0;formeditorZoom:0.33}
 }
 ##^##*/
