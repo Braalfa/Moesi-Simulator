@@ -133,7 +133,7 @@ class CacheController:
                 self.logger.info("Data found")
                 next_state = State.S
                 self.overwrite_existing_line(line, address, message.data, next_state)
-                self.remove_write_miss_messages(address, message.origin)
+                self.remove_write_miss_messages(address, message.origin, message.data)
             return line.get_data()
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address, new_value)
@@ -154,13 +154,14 @@ class CacheController:
         line.set_address(address)
         line.set_data(data)
 
-    def remove_write_miss_messages(self, address: int, origin: int):
+    def remove_write_miss_messages(self, address: int, origin: int, acceptable_value: str):
         no_removed_messages = []
         for i in range(len(self.unexpected_messages_queue)):
             message = self.unexpected_messages_queue[i]
             if message.message_type == MessageType.WRITE_MISS \
                     and message.address == address\
-                    and message.origin == origin:
+                    and message.origin == origin \
+                    and message.data == acceptable_value:
                 pass
             else:
                 no_removed_messages.append(message)
@@ -233,7 +234,7 @@ class CacheController:
         line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
         processed = False
         if line is not None:
-            if line.state in [State.S, State.E, State.O, State.M]:
+            if line.state in [State.E, State.O, State.M]:
                 self.logger.info("Preprocessing read miss; message:" + message.__str__())
                 self.transition_by_bus(message, line)
                 processed = True
@@ -261,7 +262,6 @@ class CacheController:
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
             line.set_state(next_state)
-            self.supply_data_to_bus(message.address, line.get_data(), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
             line.set_state(next_state)

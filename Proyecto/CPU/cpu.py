@@ -71,10 +71,9 @@ class CPU:
         return next_instruction
 
     def execute_instruction(self, instruction: Instruction):
+        self.assign_next_operation_to_cache(instruction)
         if instruction.instruction_type == InstructionType.CALC:
             self.execute_calculation()
-        else:
-            self.assign_next_operation_to_cache(instruction)
 
     def assign_next_operation_to_cache(self, instruction: Instruction):
         while self.cache_controller.next_cpu_operation is not None:
