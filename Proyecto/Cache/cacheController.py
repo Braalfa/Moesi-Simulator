@@ -76,30 +76,33 @@ class CacheController:
         while len(self.unexpected_messages_queue) > 0:
             self.status = "Processing Bus Messages"
             message = self.unexpected_messages_queue.pop(0)
-            line = self.cache.obtain_line_by_address(message.address)
+            line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
             if line is not None:
                 self.logger.info(
                     "Transitioning on skipped message : " + message.__str__() + " Line " + str(line.get_address()))
                 self.transition_by_bus(message, line)
+                line.release_lock()
             else:
                 self.logger.info(
                     "Skipped, message was irrelevant message : " + message.__str__())
 
     def write_request(self, address: int, new_value: str):
-        line, state = self.cache.obtain_line_and_state(address)
+        line, state = self.cache.obtain_line_and_state_and_acquire_lock(address)
         self.current_instruction_type = InstructionType.WRITE
         if state != State.I:
             state = line.get_state()
         self.transition_by_cpu(state, line, CPUAction.WRITE, address, new_value)
         self.current_instruction_type = None
+        line.release_lock()
 
     def read_request(self, address: int):
-        line, state = self.cache.obtain_line_and_state(address)
+        line, state = self.cache.obtain_line_and_state_and_acquire_lock(address)
         self.current_instruction_type = InstructionType.READ
         if state != State.I:
             state = line.get_state()
         data = self.transition_by_cpu(state, line, CPUAction.READ, address)
         self.current_instruction_type = None
+        line.release_lock()
         return data
 
     def transition_by_cpu(self, current_state: State, line: CacheLine,
@@ -130,7 +133,7 @@ class CacheController:
                 self.logger.info("Data found")
                 next_state = State.S
                 self.overwrite_existing_line(line, address, message.data, next_state)
-                # self.remove_write_miss_messages(address, message.origin)
+                self.remove_write_miss_messages(address, message.origin)
             return line.get_data()
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address, new_value)
@@ -146,104 +149,96 @@ class CacheController:
         self.broadcast_write_miss(address, '')
 
     def overwrite_existing_line(self, line: CacheLine, address: int, data: str, state: State):
-        line.acquire_lock()
         self.evict(line)
         line.set_state(state)
         line.set_address(address)
         line.set_data(data)
-        line.release_lock()
 
-    # def remove_write_miss_messages(self, address: int, origin: int):
-    #     no_removed_messages = []
-    #     for i in range(len(self.unexpected_messages_queue)):
-    #         message = self.unexpected_messages_queue[i]
-    #         if message.message_type == MessageType.WRITE_MISS \
-    #                 and message.address == address\
-    #                 and message.origin == origin:
-    #             pass
-    #         else:
-    #             no_removed_messages.append(message)
-    #     self.unexpected_messages_queue = no_removed_messages
+    def remove_write_miss_messages(self, address: int, origin: int):
+        no_removed_messages = []
+        for i in range(len(self.unexpected_messages_queue)):
+            message = self.unexpected_messages_queue[i]
+            if message.message_type == MessageType.WRITE_MISS \
+                    and message.address == address\
+                    and message.origin == origin:
+                pass
+            else:
+                no_removed_messages.append(message)
+        self.unexpected_messages_queue = no_removed_messages
 
     def transition_by_cpu_from_S(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
             next_state = State.S
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
             return line.get_data()
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address, new_value)
             next_state = State.M
-            line.acquire_lock()
             line.set_state(next_state)
             line.set_data(new_value)
-            line.release_lock()
+            
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_E(self, action: CPUAction, line: CacheLine, new_value: str = None):
         if action == CPUAction.READ:
             next_state = State.E
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
             return line.get_data()
         elif action == CPUAction.WRITE:
             next_state = State.M
-            line.acquire_lock()
             line.set_state(next_state)
             line.set_data(new_value)
-            line.release_lock()
+            
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_O(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
             next_state = State.O
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
             return line.get_data()
         elif action == CPUAction.WRITE:
             next_state = State.M
             self.broadcast_write_miss(address, new_value)
-            line.acquire_lock()
             line.set_state(next_state)
             line.set_data(new_value)
-            line.release_lock()
+            
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_M(self, action: CPUAction, line: CacheLine, new_value: str = None):
         if action == CPUAction.READ:
             next_state = State.M
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
             return line.get_data()
         elif action == CPUAction.WRITE:
             next_state = State.M
-            line.acquire_lock()
             line.set_state(next_state)
             line.set_data(new_value)
-            line.release_lock()
+            
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def receive_message_from_bus(self, message: Message):
         self.logger.info("Message received from bus; message:" + message.__str__())
+        message_preprocessed = False
         if message.message_type == MessageType.READ_MISS:
-            self.preprocess_read_miss(message)
-        if message.message_type == MessageType.READ_MISS \
+            message_preprocessed = self.try_to_preprocess_read_miss(message)
+        if message_preprocessed:
+            pass
+        elif message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS:
             self.unexpected_messages_queue.append(message)
         else:
             self.data_messages_queue.append(message)
 
-    def preprocess_read_miss(self, message: Message):
+    def try_to_preprocess_read_miss(self, message: Message) -> bool:
         line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
+        processed = False
         if line is not None:
-            if line.state in [State.E, State.O, State.M]:
-                self.logger.info("Supplying data on preprocessing; message:" + message.__str__())
-                self.supply_data_to_bus(message.address, line.get_data(), message.origin)
+            if line.state in [State.S, State.E, State.O, State.M]:
+                self.logger.info("Preprocessing read miss; message:" + message.__str__())
+                self.transition_by_bus(message, line)
+                processed = True
             line.release_lock()
+        return processed
 
     def transition_by_bus(self, message: Message, line: CacheLine):
         self.timing.cache_wait()
@@ -265,42 +260,31 @@ class CacheController:
     def transition_by_bus_from_S(self, message: Message, line: CacheLine):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
+            self.supply_data_to_bus(message.address, line.get_data(), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
         self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def transition_by_bus_from_E(self, message: Message, line: CacheLine):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
             self.supply_data_to_bus(message.address, line.get_data(), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
         self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def transition_by_bus_from_O_and_M(self, message: Message, line: CacheLine):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.O
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
             self.supply_data_to_bus(message.address, line.get_data(), message.origin)
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
-            line.acquire_lock()
             line.set_state(next_state)
-            line.release_lock()
         self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def evict(self, line: CacheLine):
