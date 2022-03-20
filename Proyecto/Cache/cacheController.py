@@ -29,6 +29,7 @@ class CacheController:
         self.timing = timing
         self.messages_received = 0
         self.messages_accepted = 0
+        self.output_data = None
         self.next_cpu_operation: Instruction | None = None
         self.most_recent_instruction: Instruction | None = None
         self.cpu_operation_lock = Lock()
@@ -64,11 +65,12 @@ class CacheController:
         if self.next_cpu_operation is not None:
             self.most_recent_instruction = self.next_cpu_operation
             self.status = "Running CPU Instruction"
-            self.logger.info("Instruction on processor: " + str(self.cache.cache_number) + " instruction: " + self.next_cpu_operation.__str__())
+            self.logger.info("Instruction on processor: " + str(
+                self.cache.cache_number) + " instruction: " + self.next_cpu_operation.__str__())
             if self.next_cpu_operation.instruction_type == InstructionType.WRITE:
                 self.write_request(self.next_cpu_operation.address, self.next_cpu_operation.value)
             elif self.next_cpu_operation.instruction_type == InstructionType.READ:
-                self.read_request(self.next_cpu_operation.address)
+                self.output_data = self.read_request(self.next_cpu_operation.address)
             self.next_cpu_operation = None
         self.cpu_operation_lock.release()
 
@@ -159,7 +161,7 @@ class CacheController:
         for i in range(len(self.unexpected_messages_queue)):
             message = self.unexpected_messages_queue[i]
             if message.message_type == MessageType.WRITE_MISS \
-                    and message.address == address\
+                    and message.address == address \
                     and message.origin == origin \
                     and message.data == acceptable_value:
                 pass
@@ -177,7 +179,7 @@ class CacheController:
             next_state = State.M
             line.set_state(next_state)
             line.set_data(new_value)
-            
+
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_E(self, action: CPUAction, line: CacheLine, new_value: str = None):
@@ -189,7 +191,7 @@ class CacheController:
             next_state = State.M
             line.set_state(next_state)
             line.set_data(new_value)
-            
+
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_O(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
@@ -202,7 +204,7 @@ class CacheController:
             self.broadcast_write_miss(address, new_value)
             line.set_state(next_state)
             line.set_data(new_value)
-            
+
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def transition_by_cpu_from_M(self, action: CPUAction, line: CacheLine, new_value: str = None):
@@ -214,7 +216,7 @@ class CacheController:
             next_state = State.M
             line.set_state(next_state)
             line.set_data(new_value)
-            
+
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def receive_message_from_bus(self, message: Message):
@@ -244,7 +246,7 @@ class CacheController:
     def transition_by_bus(self, message: Message, line: CacheLine):
         self.timing.cache_wait()
         current_state = line.get_state()
-        self.logger.info("Transition by bus ; current state: " + str(current_state) + " Message : "+message.__str__()
+        self.logger.info("Transition by bus ; current state: " + str(current_state) + " Message : " + message.__str__()
                          + " Address " + str(line.get_address()))
         if current_state == State.I:
             self.logger.info("Transition by bus; next_state: " + str(State.I))

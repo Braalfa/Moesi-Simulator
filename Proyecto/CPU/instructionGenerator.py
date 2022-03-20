@@ -50,12 +50,12 @@ class NormalDistribution:
         big = (number+0.49 - (minimum - 0.49)) * (2 * 1.5) / (maximum - minimum +0.98) - 1.5
         return integrate.quad(self.obtain_probability_density, small, big)[0]
 
-# TODO: Replace the random generators
+
 class InstructionGenerator:
     def __init__(self, processor_number: int,
                  number_of_memory_blocks: int = 8, block_width_hexadecimal: int = 4):
         self.processor_number = processor_number
-        self.operations = [InstructionType.CALC, InstructionType.READ, InstructionType.WRITE]
+        self.operations = [InstructionType.READ, InstructionType.CALC, InstructionType.WRITE]
         self.number_of_operations = len(self.operations)
         self.block_width_hexadecimal = block_width_hexadecimal
         self.blocks_bits = math.ceil(math.log(number_of_memory_blocks, 2))

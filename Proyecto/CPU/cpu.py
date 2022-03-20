@@ -26,6 +26,7 @@ class CPU:
         self.next_instruction = None
         self.continue_working = True
         self.current_status = "Waiting"
+        self.last_read_value = None
 
     def stop_execution(self):
         self.execute_continually = False
@@ -71,14 +72,15 @@ class CPU:
         return next_instruction
 
     def execute_instruction(self, instruction: Instruction):
-        self.assign_next_operation_to_cache(instruction)
+        self.read_output_and_assign_next_operation_to_cache(instruction)
         if instruction.instruction_type == InstructionType.CALC:
             self.execute_calculation()
 
-    def assign_next_operation_to_cache(self, instruction: Instruction):
+    def read_output_and_assign_next_operation_to_cache(self, instruction: Instruction):
         while self.cache_controller.next_cpu_operation is not None:
             pass
         self.cache_controller.cpu_operation_lock.acquire()
+        self.last_read_value = self.cache_controller.output_data
         self.cache_controller.next_cpu_operation = instruction
         self.cache_controller.cpu_operation_lock.release()
 
