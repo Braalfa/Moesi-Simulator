@@ -312,11 +312,9 @@ class CacheController:
         self.send_message_to_bus(MessageType.WRITE_MISS, address, data=data)
 
     def ask_data_from_memory(self, address: int):
-        self.timing.memory_wait()
         self.send_message_to_bus(MessageType.REQUEST_FROM_MEMORY, address)
 
     def ask_write_back(self, address: int, new_value: str):
-        self.timing.memory_wait()
         self.send_message_to_bus(MessageType.WRITE_BACK, address, data=new_value)
 
     def supply_data_to_bus(self, address: int, data: str, destination: int):
@@ -367,17 +365,6 @@ class CacheController:
                 self.data_messages_queue.pop(i)
                 return message
         return None
-
-    def are_there_sharers(self, address: int):
-        message = self.await_message_from_bus(MessageType.SHARED_RESPONSE, address,
-                                              max_time=self.timing.await_sharers_timing)
-        if message is not None:
-            return True
-        else:
-            return False
-
-    def return_shared_to_bus(self, address: int, destination: int):
-        self.send_message_to_bus(MessageType.SHARED_RESPONSE, address, destination=destination)
 
     def send_message_to_bus(self, message_type: MessageType, address: int, destination=None, data=None):
         message = Message(message_type, self.cache.cache_number, destination=destination, address=address, data=data)

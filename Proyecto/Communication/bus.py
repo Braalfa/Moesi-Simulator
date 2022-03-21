@@ -26,26 +26,26 @@ class Bus:
 
     def process_next_message(self):
         message = self.get_next_message()
-
         if message is None:
             return
-        if message.message_type == MessageType.REQUEST_FROM_MEMORY:
-            self.deliver_data_from_memory(message)
-        elif message.message_type == MessageType.WRITE_BACK:
-            self.main_memory.write(message.address, message.data)
+        if message.message_type == MessageType.REQUEST_FROM_MEMORY \
+                or message.message_type == MessageType.WRITE_BACK:
+            self.deliver_message_to_memory(message)
         else:
             self.deliver_message_to_caches(message)
 
     def obtain_messages(self):
+        message = self.main_memory.return_next_send_messages()
+        while message is not None:
+            self.add_message_to_queue(message)
+            message = self.main_memory.return_next_send_messages()
         for cache_controller in self.cache_controllers:
             message = cache_controller.return_next_send_message()
-            if message is not None:
-                self.add_message(message)
-                self.logger.info("Received message from cache: " + str(cache_controller.cache.cache_number)
-                                 + " message: " + message.__str__())
+            self.add_message_to_queue(message)
 
-    def add_message(self, message: Message):
-        self.queue.append(message)
+    def add_message_to_queue(self, message):
+        if message is not None:
+            self.queue.append(message)
 
     def get_next_message(self):
         try:
@@ -53,13 +53,8 @@ class Bus:
         except IndexError:
             return None
 
-    def deliver_data_from_memory(self, incoming_message):
-        data = self.main_memory.read(incoming_message.address)
-        response_message = Message(MessageType.MEMORY_DATA_RESPONSE,
-                                   destination=incoming_message.origin,
-                                   address=incoming_message.address,
-                                   data=data)
-        self.deliver_message_to_caches(response_message)
+    def deliver_message_to_memory(self, message):
+        self.main_memory.receive_message(message)
 
     def deliver_message_to_caches(self, message: Message):
         cache_destinations = self.obtain_cache_destinations(message)

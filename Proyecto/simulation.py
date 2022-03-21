@@ -76,6 +76,7 @@ class Simulation:
 
     def execute(self):
         self.bus.start_execution()
+        self.main_memory.start_execution()
         for cpu in self.cpus:
             cpu.start_execution()
             cpu.cache_controller.start_execution()
