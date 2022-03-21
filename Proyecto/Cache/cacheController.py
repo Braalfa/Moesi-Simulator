@@ -148,7 +148,7 @@ class CacheController:
         data = self.read_memory_response_from_bus(address)
         next_state = State.E
         self.overwrite_existing_line(line, address, data, next_state)
-        self.broadcast_write_miss(address, '')
+        self.broadcast_invalidate_shared(address, data)
 
     def overwrite_existing_line(self, line: CacheLine, address: int, data: str, state: State):
         self.evict(line)
@@ -158,6 +158,8 @@ class CacheController:
 
     def remove_write_miss_messages(self, address: int, origin: int, acceptable_value: str):
         no_removed_messages = []
+        # Sleep to make sure messages arrive
+        time.sleep(1)
         for i in range(len(self.unexpected_messages_queue)):
             message = self.unexpected_messages_queue[i]
             if message.message_type == MessageType.WRITE_MISS \
@@ -264,30 +266,34 @@ class CacheController:
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
             line.set_state(next_state)
-        elif message.message_type == MessageType.WRITE_MISS:
+            self.logger.info("Transition by bus; next_state: " + str(next_state))
+        elif message.message_type == MessageType.WRITE_MISS\
+                or message.message_type == MessageType.INVALIDATE_SHARED:
             next_state = State.I
             line.set_state(next_state)
-        self.logger.info("Transition by bus; next_state: " + str(next_state))
+            self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def transition_by_bus_from_E(self, message: Message, line: CacheLine):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.S
             line.set_state(next_state)
             self.supply_data_to_bus(message.address, line.get_data(), message.origin)
+            self.logger.info("Transition by bus; next_state: " + str(next_state))
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
             line.set_state(next_state)
-        self.logger.info("Transition by bus; next_state: " + str(next_state))
+            self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def transition_by_bus_from_O_and_M(self, message: Message, line: CacheLine):
         if message.message_type == MessageType.READ_MISS:
             next_state = State.O
             line.set_state(next_state)
             self.supply_data_to_bus(message.address, line.get_data(), message.origin)
+            self.logger.info("Transition by bus; next_state: " + str(next_state))
         elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
             line.set_state(next_state)
-        self.logger.info("Transition by bus; next_state: " + str(next_state))
+            self.logger.info("Transition by bus; next_state: " + str(next_state))
 
     def evict(self, line: CacheLine):
         self.logger.info("Evicting; line number: " + str(line.line_number) + " address: " + str(line.address))
@@ -310,6 +316,9 @@ class CacheController:
 
     def broadcast_write_miss(self, address: int, data: str):
         self.send_message_to_bus(MessageType.WRITE_MISS, address, data=data)
+
+    def broadcast_invalidate_shared(self, address: int, data: str):
+        self.send_message_to_bus(MessageType.INVALIDATE_SHARED, address, data=data)
 
     def ask_data_from_memory(self, address: int):
         self.timing.memory_wait()

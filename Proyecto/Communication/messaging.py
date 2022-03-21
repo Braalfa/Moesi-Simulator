@@ -9,6 +9,7 @@ class MessageType(Enum):
     CACHE_DATA_RESPONSE = 4
     MEMORY_DATA_RESPONSE = 5
     REQUEST_FROM_MEMORY = 6
+    INVALIDATE_SHARED = 7
 
 
 class Message:
