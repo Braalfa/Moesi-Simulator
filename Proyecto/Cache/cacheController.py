@@ -36,6 +36,7 @@ class CacheController:
         self.current_instruction_type: InstructionType | None = None
         self.execute_cache_flag = True
         self.status = "Idle"
+        self.queue_messages_to_delete = [[], []]
 
     def get_most_recent_instruction_as_string(self):
         if self.most_recent_instruction is not None:
@@ -75,6 +76,7 @@ class CacheController:
         self.cpu_operation_lock.release()
 
     def process_pending_messages(self):
+        self.delete_handled_messages()
         while len(self.unexpected_messages_queue) > 0:
             self.status = "Processing Bus Messages"
             message = self.unexpected_messages_queue.pop(0)
@@ -87,6 +89,12 @@ class CacheController:
             else:
                 self.logger.info(
                     "Skipped, message was irrelevant message : " + message.__str__())
+
+    def delete_handled_messages(self):
+        messages_to_delete = self.queue_messages_to_delete.pop(0)
+        for message in messages_to_delete:
+            self.remove_write_miss_messages(message.address, message.origin, message.data)
+        self.queue_messages_to_delete.append([])
 
     def write_request(self, address: int, new_value: str):
         line, state = self.cache.obtain_line_and_state_and_acquire_lock(address)
@@ -135,7 +143,9 @@ class CacheController:
                 self.logger.info("Data found")
                 next_state = State.S
                 self.overwrite_existing_line(line, address, message.data, next_state)
-                self.remove_write_miss_messages(address, message.origin, message.data)
+                self.queue_messages_to_delete[1].append(
+                    Message(MessageType.WRITE_MISS, origin=message.origin, data=message.data)
+                )
             return line.get_data()
         elif action == CPUAction.WRITE:
             self.broadcast_write_miss(address, new_value)
@@ -158,15 +168,13 @@ class CacheController:
 
     def remove_write_miss_messages(self, address: int, origin: int, acceptable_value: str):
         no_removed_messages = []
-        # Sleep to make sure messages arrive
-        time.sleep(1)
         for i in range(len(self.unexpected_messages_queue)):
             message = self.unexpected_messages_queue[i]
             if message.message_type == MessageType.WRITE_MISS \
                     and message.address == address \
                     and message.origin == origin \
                     and message.data == acceptable_value:
-                pass
+                self.logger.info("Removing message: " + message.__str__())
             else:
                 no_removed_messages.append(message)
         self.unexpected_messages_queue = no_removed_messages
