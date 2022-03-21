@@ -229,7 +229,8 @@ class CacheController:
         if message_preprocessed:
             pass
         elif message.message_type == MessageType.READ_MISS \
-                or message.message_type == MessageType.WRITE_MISS:
+                or message.message_type == MessageType.WRITE_MISS \
+                or message.message_type == MessageType.INVALIDATE_SHARED:
             self.unexpected_messages_queue.append(message)
         else:
             self.data_messages_queue.append(message)
