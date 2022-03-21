@@ -76,26 +76,33 @@ class CacheController:
         self.cpu_operation_lock.release()
 
     def process_pending_messages(self):
-
         while len(self.unexpected_messages_queue) > 0:
             self.status = "Processing Bus Messages"
             message = self.unexpected_messages_queue.pop(0)
+            if not self.should_delete_message(message):
+                line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
+                if line is not None:
+                    self.logger.info(
+                        "Transitioning on skipped message : " + message.__str__() + " Line " + str(line.get_address()))
+                    self.transition_by_bus(message, line)
+                    line.release_lock()
+                else:
+                    self.logger.info(
+                        "Skipped, message was irrelevant message : " + message.__str__())
 
-            line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
-            if line is not None:
-                self.logger.info(
-                    "Transitioning on skipped message : " + message.__str__() + " Line " + str(line.get_address()))
-                self.transition_by_bus(message, line)
-                line.release_lock()
-            else:
-                self.logger.info(
-                    "Skipped, message was irrelevant message : " + message.__str__())
-
-    def should_delete_message(self, message) -> bool:
-        q = self.queue_messages_to_delete[0] + self.queue_messages_to_delete[1]
-        for q 
-        if Message.is_message_equal(message)
+    def should_delete_message(self, message1) -> bool:
+        response = False
+        for j in range(len(self.queue_messages_to_delete)):
+            for i in range(len(self.queue_messages_to_delete[j])):
+                message2 = self.queue_messages_to_delete[j][i]
+                if Message.is_message_equal(message1, message2):
+                    response = True
+                    break
+            if response:
+                break
+        self.queue_messages_to_delete.pop(0)
         self.queue_messages_to_delete.append([])
+        return response
 
     def write_request(self, address: int, new_value: str):
         line, state = self.cache.obtain_line_and_state_and_acquire_lock(address)
