@@ -77,10 +77,11 @@ class Cache:
         line = self.find_line_in_cache(address)
         line.set_state(next_state)
 
-    def obtain_line_and_state(self, address) -> (CacheLine, State):
-        line = self.obtain_line_by_address(address)
+    def obtain_line_and_state_and_acquire_lock(self, address) -> (CacheLine, State):
+        line = self.find_line_in_cache_and_acquire_lock(address)
         if line is None:
             line = self.select_line_to_overwrite(address)
+            line.acquire_lock()
             state = State.I
         else:
             state = line.get_state()
@@ -90,10 +91,19 @@ class Cache:
         line = self.find_line_in_cache(address)
         return line
 
+    def obtain_line_by_address_and_acquire_lock(self, address: int):
+        line = self.find_line_in_cache_and_acquire_lock(address)
+        return line
+
     def select_line_to_overwrite(self, address: int):
         set_number = address % 2
         memory_by_set = [line for line in self.memory if line.line_number // 2 == set_number]
-        memory_index = randint(0, 1)
+        if memory_by_set[0].state == State.I:
+            memory_index = 0
+        elif memory_by_set[1].state == State.I:
+            memory_index = 1
+        else:
+            memory_index = randint(0, 1)
         selected_line = memory_by_set[memory_index]
         return selected_line
 
@@ -103,6 +113,15 @@ class Cache:
             return filtered_memory[0]
         else:
             return None
+
+    def find_line_in_cache_and_acquire_lock(self, address: int):
+        for line in self.memory:
+            line.acquire_lock()
+            if line.address == address:
+                return line
+            else:
+                line.release_lock()
+        return None
 
     def obtain_content(self) -> []:
         return self.memory

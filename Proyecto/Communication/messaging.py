@@ -6,8 +6,9 @@ class MessageType(Enum):
     WRITE_MISS = 1
     WRITE_BACK = 2
     SHARED_RESPONSE = 3
-    DATA_RESPONSE = 4
-    REQUEST_FROM_MEMORY = 5
+    CACHE_DATA_RESPONSE = 4
+    MEMORY_DATA_RESPONSE = 5
+    REQUEST_FROM_MEMORY = 6
 
 
 class Message:

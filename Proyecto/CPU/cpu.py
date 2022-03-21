@@ -21,12 +21,12 @@ class CPU:
         self.calculation_time = calculation_time
         self.logger = logger
         self.timing = timing
-        self.most_recent_instruction: Instruction | None = None
         self.execute_continually = False
         self.execute_once = False
         self.next_instruction = None
         self.continue_working = True
         self.current_status = "Waiting"
+        self.last_read_value = None
 
     def stop_execution(self):
         self.execute_continually = False
@@ -49,10 +49,7 @@ class CPU:
         while self.continue_working:
             if self.should_execute():
                 self.current_status = "Running"
-                self.logger.info("Running on processor " + str(self.processor_number))
                 instruction = self.obtain_next_instruction()
-                self.logger.info("Instruction on processor: " + str(self.processor_number) + " instruction: " + instruction.__str__())
-                self.update_most_recent_instruction(instruction)
                 self.execute_instruction(instruction)
             else:
                 self.current_status = "Waiting"
@@ -66,9 +63,6 @@ class CPU:
         else:
             return False
 
-    def update_most_recent_instruction(self, instruction):
-        self.most_recent_instruction = instruction
-
     def obtain_next_instruction(self) -> Instruction:
         if self.next_instruction is None:
             next_instruction = self.instructions_generator.generate_instruction()
@@ -78,15 +72,15 @@ class CPU:
         return next_instruction
 
     def execute_instruction(self, instruction: Instruction):
+        self.read_output_and_assign_next_operation_to_cache(instruction)
         if instruction.instruction_type == InstructionType.CALC:
             self.execute_calculation()
-        else:
-            self.assign_next_operation_to_cache(instruction)
 
-    def assign_next_operation_to_cache(self, instruction: Instruction):
+    def read_output_and_assign_next_operation_to_cache(self, instruction: Instruction):
         while self.cache_controller.next_cpu_operation is not None:
             pass
         self.cache_controller.cpu_operation_lock.acquire()
+        self.last_read_value = self.cache_controller.output_data
         self.cache_controller.next_cpu_operation = instruction
         self.cache_controller.cpu_operation_lock.release()
 
@@ -101,9 +95,4 @@ class CPU:
         self.timing.execute_wait()
         self.cache_controller.write_request(address, new_value)
 
-    def get_most_recent_instruction_as_string(self):
-        if self.most_recent_instruction is not None:
-            return self.most_recent_instruction.as_string_instruction()
-        else:
-            return ''
         

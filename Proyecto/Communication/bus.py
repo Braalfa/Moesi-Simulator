@@ -55,7 +55,7 @@ class Bus:
 
     def deliver_data_from_memory(self, incoming_message):
         data = self.main_memory.read(incoming_message.address)
-        response_message = Message(MessageType.DATA_RESPONSE,
+        response_message = Message(MessageType.MEMORY_DATA_RESPONSE,
                                    destination=incoming_message.origin,
                                    address=incoming_message.address,
                                    data=data)
@@ -71,7 +71,8 @@ class Bus:
 
     def obtain_cache_destinations(self, message: Message):
         if message.message_type == MessageType.READ_MISS \
-                or message.message_type == MessageType.WRITE_MISS:
+                or message.message_type == MessageType.WRITE_MISS\
+                or message.message_type == MessageType.MEMORY_DATA_RESPONSE:
             cache_destinations = [cache_controller for cache_controller in self.cache_controllers
                                   if cache_controller.cache.cache_number != message.origin]
         else:
