@@ -21,6 +21,14 @@ class Message:
         self.address = address
         self.data = data
 
+    @staticmethod
+    def is_message_equal(message1, message2):
+        if message1.message_type == message2.message_type \
+                and message1.address == message2.address \
+                and message1.origin == message2.origin \
+                and message1.data == message2.data:
+            return True
+
     def __str__(self):
         string = str(self.message_type)
         if self.origin is not None:

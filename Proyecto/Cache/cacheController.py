@@ -76,10 +76,11 @@ class CacheController:
         self.cpu_operation_lock.release()
 
     def process_pending_messages(self):
-        self.delete_handled_messages()
+
         while len(self.unexpected_messages_queue) > 0:
             self.status = "Processing Bus Messages"
             message = self.unexpected_messages_queue.pop(0)
+
             line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
             if line is not None:
                 self.logger.info(
@@ -90,10 +91,10 @@ class CacheController:
                 self.logger.info(
                     "Skipped, message was irrelevant message : " + message.__str__())
 
-    def delete_handled_messages(self):
-        messages_to_delete = self.queue_messages_to_delete.pop(0)
-        for message in messages_to_delete:
-            self.remove_write_miss_messages(message.address, message.origin, message.data)
+    def should_delete_message(self, message) -> bool:
+        q = self.queue_messages_to_delete[0] + self.queue_messages_to_delete[1]
+        for q 
+        if Message.is_message_equal(message)
         self.queue_messages_to_delete.append([])
 
     def write_request(self, address: int, new_value: str):
@@ -144,7 +145,7 @@ class CacheController:
                 next_state = State.S
                 self.overwrite_existing_line(line, address, message.data, next_state)
                 self.queue_messages_to_delete[1].append(
-                    Message(MessageType.WRITE_MISS, origin=message.origin, data=message.data)
+                    Message(MessageType.WRITE_MISS, address=address, origin=message.origin, data=message.data)
                 )
             return line.get_data()
         elif action == CPUAction.WRITE:
@@ -165,19 +166,6 @@ class CacheController:
         line.set_state(state)
         line.set_address(address)
         line.set_data(data)
-
-    def remove_write_miss_messages(self, address: int, origin: int, acceptable_value: str):
-        no_removed_messages = []
-        for i in range(len(self.unexpected_messages_queue)):
-            message = self.unexpected_messages_queue[i]
-            if message.message_type == MessageType.WRITE_MISS \
-                    and message.address == address \
-                    and message.origin == origin \
-                    and message.data == acceptable_value:
-                self.logger.info("Removing message: " + message.__str__())
-            else:
-                no_removed_messages.append(message)
-        self.unexpected_messages_queue = no_removed_messages
 
     def transition_by_cpu_from_S(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
