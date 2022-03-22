@@ -1,13 +1,12 @@
 import threading
 import time
 
-from Communication.bus import Bus
 from Communication.messaging import Message, MessageType
 from Timing.timing import Timing
 
 
 class MainMemory:
-    def __init__(self, timing: Timing, bus: Bus, delay_time: int = 2):
+    def __init__(self, timing: Timing, delay_time: int = 2):
         self.capacity = 8
         self.timing = timing
         self.delay_time = delay_time
@@ -15,34 +14,10 @@ class MainMemory:
         self.send_messages_queue = []
         self.received_messages_queue = []
         self.run_flag = True
-        self.bus = bus
 
     def start_execution(self):
         thread = threading.Thread(target=self.run, args=())
         thread.start()
-        thread = threading.Thread(target=self.obtain_bus_message_loop, args=())
-        thread.start()
-        thread = threading.Thread(target=self.send_bus_message_loop, args=())
-        thread.start()
-
-    def obtain_bus_message_loop(self):
-        last_read_message: Message | None = None
-        while self.run_flag:
-            current_message = self.bus.get_current_message()
-            while current_message is None or last_read_message is current_message:
-                current_message = self.bus.get_current_message()
-                pass
-            self.bus.acknowledge_message()
-            if current_message.message_type == MessageType.REQUEST_FROM_MEMORY \
-                    or current_message.message_type == MessageType.WRITE_BACK:
-                self.received_messages_queue.append(current_message)
-            last_read_message = current_message
-
-    def send_bus_message_loop(self):
-        while self.run_flag:
-            if len(self.send_messages_queue) > 0:
-                message = self.send_messages_queue.pop(0)
-                self.bus.send_message(message)
 
     def run(self):
         while self.run_flag:
@@ -65,9 +40,10 @@ class MainMemory:
         self.send_messages_queue.append(response_message)
 
     def receive_message(self, message: Message):
-        self.received_messages_queue.append(message)
+        if message is not None:
+            self.received_messages_queue.append(message)
 
-    def return_next_send_messages(self):
+    def return_next_send_message(self):
         if len(self.send_messages_queue) > 0:
             return self.send_messages_queue.pop(0)
         else:

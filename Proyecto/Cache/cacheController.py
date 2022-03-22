@@ -12,7 +12,6 @@ import time
 import logging
 from Timing.timing import Timing
 from CPU.instruction import InstructionType, Instruction
-from Communication.bus import  Bus
 
 
 class CPUOperationStatus(Enum):
@@ -21,7 +20,7 @@ class CPUOperationStatus(Enum):
 
 
 class CacheController:
-    def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing, bus: Bus):
+    def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing):
         self.cache = cache
         self.unexpected_messages_queue = []
         self.data_messages_queue = []
@@ -37,34 +36,10 @@ class CacheController:
         self.current_instruction_type: InstructionType | None = None
         self.execute_cache_flag = True
         self.status = "Idle"
-        self.bus = bus
-        self.run_flag = True
 
     def start_execution(self):
         thread = threading.Thread(target=self.run, args=())
         thread.start()
-        thread = threading.Thread(target=self.obtain_bus_message_loop, args=())
-        thread.start()
-        thread = threading.Thread(target=self.send_bus_message_loop, args=())
-        thread.start()
-
-    def obtain_bus_message_loop(self):
-        last_read_message: Message | None = None
-        while self.run_flag:
-            current_message = self.bus.get_current_message()
-            while current_message is None or last_read_message is current_message:
-                current_message = self.bus.get_current_message()
-                pass
-            self.bus.acknowledge_message()
-            thread = threading.Thread(target=self.receive_message_from_bus, args=(current_message,))
-            thread.start()
-            last_read_message = current_message
-
-    def send_bus_message_loop(self):
-        while self.run_flag:
-            if len(self.send_messages_queue) > 0:
-                message = self.send_messages_queue.pop(0)
-                self.bus.send_message(message)
 
     def get_most_recent_instruction_as_string(self):
         if self.most_recent_instruction is not None:
@@ -246,6 +221,11 @@ class CacheController:
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
     def receive_message_from_bus(self, message: Message):
+        if message is not None:
+            thread = threading.Thread(target=self.process_message_from_bus, args=(message,))
+            thread.start()
+
+    def process_message_from_bus(self, message: Message):
         self.logger.info("Message received from bus; message:" + message.__str__())
         if message.origin == self.cache.cache_number:
             return
