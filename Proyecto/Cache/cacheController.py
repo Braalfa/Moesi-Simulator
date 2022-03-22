@@ -37,6 +37,8 @@ class CacheController:
         self.execute_cache_flag = True
         self.status = "Idle"
 
+        
+
     def get_most_recent_instruction_as_string(self):
         if self.most_recent_instruction is not None:
             return self.most_recent_instruction.as_string_instruction()
