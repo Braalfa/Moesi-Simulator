@@ -29,23 +29,21 @@ class Simulation:
         self.number_of_blocks_per_cache = 4
         self.number_of_memory_lines = 8
         self.timing = Timing(base_timing=1)
-        self.main_memory = MainMemory(self.timing)
         self.cache_controllers = []
         self.cpus = []
 
+        logger = setup_logger("bus_logger", 'bus.log')
+        self.bus = Bus(logger)
+        self.main_memory = MainMemory(self.timing, self.bus)
         for i in range(self.number_of_cpus):
             logger = setup_logger(str(i) + "_logger", str(i) + '.log')
 
             cache: Cache = Cache(i)
-            cache_controller: CacheController = CacheController(cache, logger, self.timing)
+            cache_controller: CacheController = CacheController(cache, logger, self.timing, self.bus)
             cpu = CPU(i, cache_controller, logger, self.timing)
 
             self.cache_controllers.append(cache_controller)
             self.cpus.append(cpu)
-
-        logger = setup_logger("bus_logger", 'bus.log')
-
-        self.bus = Bus(self.cache_controllers, self.main_memory, logger)
 
     def get_memory_content(self) -> []:
         return self.main_memory.memory
@@ -75,7 +73,6 @@ class Simulation:
             cpu.step_execution()
 
     def execute(self):
-        self.bus.start_execution()
         self.main_memory.start_execution()
         for cpu in self.cpus:
             cpu.start_execution()
