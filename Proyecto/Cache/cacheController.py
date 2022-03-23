@@ -181,6 +181,7 @@ class CacheController:
             self.broadcast_invalidate_shared(address, data_from_memory)
 
     def overwrite_existing_line(self, line: CacheLine, address: int, data: str, state: State):
+        line.acquire_lock()
         self.evict(line)
         line.set_state(state)
         line.set_address(address)

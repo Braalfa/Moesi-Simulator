@@ -81,7 +81,6 @@ class Cache:
         line = self.find_line_in_cache_and_acquire_lock(address)
         if line is None:
             line = self.select_line_to_overwrite(address)
-            line.acquire_lock()
             state = State.I
         else:
             state = line.get_state()
