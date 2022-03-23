@@ -74,12 +74,12 @@ class MainMemory:
             return None
 
     def write(self, address: int, new_value: str):
-       # self.timing.memory_wait()
+        self.timing.memory_wait()
         if address < self.capacity:
             self.memory[address] = new_value
 
     def read(self, address: int) -> str:
-       # self.timing.memory_wait()
+        self.timing.memory_wait()
         if address < self.capacity:
             return self.memory[address]
 

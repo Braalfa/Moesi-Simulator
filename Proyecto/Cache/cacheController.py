@@ -169,10 +169,16 @@ class CacheController:
 
     def read_from_memory(self, address, line):
         self.ask_data_from_memory(address)
-        data = self.read_memory_response_from_bus(address)
-        next_state = State.E
-        self.overwrite_existing_line(line, address, data, next_state)
-        self.broadcast_invalidate_shared(address, data)
+        data_from_memory = self.read_memory_response_from_bus(address)
+        message_from_cache = self.lookup_message_on_queue(MessageType.CACHE_DATA_RESPONSE, address)
+        if message_from_cache is not None:
+            next_state = State.S
+            self.overwrite_existing_line(line, address, message_from_cache.data, next_state)
+            self.remove_write_miss_messages(address, message_from_cache.origin, message_from_cache.data)
+        else:
+            next_state = State.E
+            self.overwrite_existing_line(line, address, data_from_memory, next_state)
+            self.broadcast_invalidate_shared(address, data_from_memory)
 
     def overwrite_existing_line(self, line: CacheLine, address: int, data: str, state: State):
         self.evict(line)
@@ -256,7 +262,7 @@ class CacheController:
             pass
         elif message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS \
-                or message.message_type == MessageType.INVALIDATE_SHARED:
+                or message.message_type == MessageType.INVALIDATE_SHARED_AND_EXCLUSIVE:
             self.unexpected_messages_queue.append(message)
         elif message.message_type == MessageType.MEMORY_DATA_RESPONSE:
             self.data_messages_queue.append(message)
@@ -298,7 +304,7 @@ class CacheController:
             line.set_state(next_state)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
         elif message.message_type == MessageType.WRITE_MISS\
-                or message.message_type == MessageType.INVALIDATE_SHARED:
+                or message.message_type == MessageType.INVALIDATE_SHARED_AND_EXCLUSIVE:
             next_state = State.I
             line.set_state(next_state)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
@@ -309,7 +315,8 @@ class CacheController:
             line.set_state(next_state)
             self.supply_data_to_bus(message.address, line.get_data(), message.origin)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
-        elif message.message_type == MessageType.WRITE_MISS:
+        elif message.message_type == MessageType.WRITE_MISS\
+                or message.message_type == MessageType.INVALIDATE_SHARED_AND_EXCLUSIVE:
             next_state = State.I
             line.set_state(next_state)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
@@ -348,14 +355,12 @@ class CacheController:
         self.send_message_to_bus(MessageType.WRITE_MISS, address, data=data)
 
     def broadcast_invalidate_shared(self, address: int, data: str):
-        self.send_message_to_bus(MessageType.INVALIDATE_SHARED, address, data=data)
+        self.send_message_to_bus(MessageType.INVALIDATE_SHARED_AND_EXCLUSIVE, address, data=data)
 
     def ask_data_from_memory(self, address: int):
-        self.timing.memory_wait()
         self.send_message_to_bus(MessageType.REQUEST_FROM_MEMORY, address)
 
     def ask_write_back(self, address: int, new_value: str):
-        self.timing.memory_wait()
         self.send_message_to_bus(MessageType.WRITE_BACK, address, data=new_value)
 
     def supply_data_to_bus(self, address: int, data: str, destination: int):
@@ -390,13 +395,19 @@ class CacheController:
                                address: int, max_time: float = 10) -> Message | None:
         start = time.time()
         while time.time() - start < max_time:
-            for i in range(len(self.data_messages_queue)):
-                message = self.data_messages_queue[i]
-                if message.message_type == message_type \
-                        and message.address == address \
-                        and message.destination == self.cache.cache_number:
-                    self.data_messages_queue.pop(i)
-                    return message
+            message = self.lookup_message_on_queue(message_type, address)
+            if message is not None:
+                return message
+        return None
+
+    def lookup_message_on_queue(self, message_type: MessageType, address: int):
+        for i in range(len(self.data_messages_queue)):
+            message = self.data_messages_queue[i]
+            if message.message_type == message_type \
+                    and message.address == address \
+                    and message.destination == self.cache.cache_number:
+                self.data_messages_queue.pop(i)
+                return message
         return None
 
     def find_recent_load_from_memory(self, address):
