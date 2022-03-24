@@ -43,22 +43,12 @@ class CacheController:
     def start_execution(self):
         thread = threading.Thread(target=self.run, args=())
         thread.start()
-        thread = threading.Thread(target=self.obtain_bus_message_loop, args=())
-        thread.start()
         thread = threading.Thread(target=self.send_bus_message_loop, args=())
         thread.start()
 
-    def obtain_bus_message_loop(self):
-        last_read_message: Message | None = None
-        while self.run_flag:
-            current_message = self.bus.get_current_message()
-            while current_message is None or last_read_message is current_message:
-                current_message = self.bus.get_current_message()
-                pass
-            self.bus.acknowledge_message()
-            thread = threading.Thread(target=self.receive_message_from_bus, args=(current_message,))
-            thread.start()
-            last_read_message = current_message
+    def receive_message_from_bus(self, message):
+        thread = threading.Thread(target=self.receive_message_from_bus_aux, args=(message,))
+        thread.start()
 
     def send_bus_message_loop(self):
         while self.run_flag:
@@ -252,7 +242,7 @@ class CacheController:
 
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
-    def receive_message_from_bus(self, message: Message):
+    def receive_message_from_bus_aux(self, message: Message):
         self.logger.info("Message received from bus; message:" + message.__str__())
         if message.origin == self.cache.cache_number:
             return

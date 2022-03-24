@@ -44,6 +44,7 @@ class Simulation:
 
             self.cache_controllers.append(cache_controller)
             self.cpus.append(cpu)
+        self.bus.initialize_environment(self.cache_controllers, self.main_memory)
 
     def get_memory_content(self) -> []:
         return self.main_memory.memory

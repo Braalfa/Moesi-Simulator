@@ -1,8 +1,6 @@
 import logging
-import time
 
 from Communication.messaging import Message
-from Communication.messaging import MessageType
 import threading
 
 
@@ -15,20 +13,17 @@ class Bus:
         self.currentMessage: Message | None = None
         self.lock = threading.Lock()
         self.queue_l = 0
+        self.cache_controllers = None
+        self.main_memory = None
 
-    def get_current_message(self):
-        return self.currentMessage
-
-    def acknowledge_message(self):
-        self.acknowledgements += 1
+    def initialize_environment(self, cache_controllers, main_memory):
+        self.cache_controllers = cache_controllers
+        self.main_memory = main_memory
 
     def send_message(self, message: Message):
         self.queue_l += 1
-        self.lock.acquire()
-        self.currentMessage = message
-        while self.acknowledgements < 5:
-            pass
-        self.acknowledgements = 0
+        for cache_controller in self.cache_controllers:
+            cache_controller.receive_message_from_bus(message)
+        self.main_memory.receive_message_from_bus(message)
         self.queue_l -= 1
         print(self.queue_l)
-        self.lock.release()

@@ -20,23 +20,11 @@ class MainMemory:
     def start_execution(self):
         thread = threading.Thread(target=self.run, args=())
         thread.start()
-        thread = threading.Thread(target=self.obtain_bus_message_loop, args=())
-        thread.start()
         thread = threading.Thread(target=self.send_bus_message_loop, args=())
         thread.start()
 
-    def obtain_bus_message_loop(self):
-        last_read_message: Message | None = None
-        while self.run_flag:
-            current_message = self.bus.get_current_message()
-            while current_message is None or last_read_message is current_message:
-                current_message = self.bus.get_current_message()
-                pass
-            self.bus.acknowledge_message()
-            if current_message.message_type == MessageType.REQUEST_FROM_MEMORY \
-                    or current_message.message_type == MessageType.WRITE_BACK:
-                self.received_messages_queue.append(current_message)
-            last_read_message = current_message
+    def receive_message_from_bus(self, message: Message):
+        self.received_messages_queue.append(message)
 
     def send_bus_message_loop(self):
         while self.run_flag:
