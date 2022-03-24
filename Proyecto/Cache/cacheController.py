@@ -12,7 +12,7 @@ import time
 import logging
 from Timing.timing import Timing
 from CPU.instruction import InstructionType, Instruction
-from Communication.bus import  Bus
+from Communication.bus import Bus
 
 
 class CPUOperationStatus(Enum):
@@ -170,16 +170,15 @@ class CacheController:
 
     def read_from_memory(self, address, line):
         self.ask_data_from_memory(address)
-        data_from_memory = self.read_memory_response_from_bus(address)
-        message_from_cache = self.lookup_message_on_queue(MessageType.CACHE_DATA_RESPONSE, address)
-        if message_from_cache is not None:
+        message = self.read_data_response_from_bus(address)
+        if message.message_type == MessageType.CACHE_DATA_RESPONSE:
             next_state = State.S
-            self.overwrite_existing_line(line, address, message_from_cache.data, next_state)
-            self.remove_write_miss_messages(address, message_from_cache.origin, message_from_cache.data)
+            self.overwrite_existing_line(line, address, message.data, next_state)
+            self.remove_write_miss_messages(address, message.origin, message.data)
         else:
             next_state = State.E
-            self.overwrite_existing_line(line, address, data_from_memory, next_state)
-            self.broadcast_invalidate_shared(address, data_from_memory)
+            self.overwrite_existing_line(line, address, message.data, next_state)
+            self.broadcast_invalidate_shared(address, message.data)
 
     def overwrite_existing_line(self, line: CacheLine, address: int, data: str, state: State):
         line.acquire_lock()
@@ -315,7 +314,7 @@ class CacheController:
             line.set_state(next_state)
             self.supply_data_to_bus(message.address, line.get_data(), message.origin)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
-        elif message.message_type == MessageType.WRITE_MISS\
+        elif message.message_type == MessageType.WRITE_MISS \
                 or message.message_type == MessageType.INVALIDATE_SHARED:
             next_state = State.I
             line.set_state(next_state)
@@ -367,47 +366,27 @@ class CacheController:
         self.send_message_to_bus(MessageType.CACHE_DATA_RESPONSE, address, data=data, destination=destination)
 
     def read_cache_response_from_bus(self, address: int) -> Message | None:
-        message = self.await_message_from_bus(MessageType.CACHE_DATA_RESPONSE,
-                                              address, max_time=self.timing.max_bus_data_timing)
+        message = self.await_data_from_bus(address, max_time=self.timing.max_bus_data_timing)
+        return message
+
+    def read_data_response_from_bus(self, address: int):
+        message = self.await_data_from_bus(address, max_time=self.timing.infinite_timing)
         if message is not None:
             return message
-        else:
-            # Try to read from recent memory load
-            self.logger.info("No data was received from the caches")
-            message = self.find_recent_load_from_memory(address)
-            if message is not None:
-                self.logger.info("Data was obtained from recent memory load")
-                return message
-            else:
-                self.logger.info("The data couldn't be loaded")
-                return None
-
-    def read_memory_response_from_bus(self, address: int) -> str | None:
-        message = self.await_message_from_bus(MessageType.MEMORY_DATA_RESPONSE,
-                                              address, max_time=self.timing.infinite_timing)
-        if message is not None:
-            return message.data
         else:
             self.logger.error("The memory didn't respond")
             return None
 
-    def await_message_from_bus(self, message_type: MessageType,
-                               address: int, max_time: float = 10) -> Message | None:
+    def await_data_from_bus(self, address: int, max_time: float = 10) -> Message | None:
         start = time.time()
         while time.time() - start < max_time:
-            message = self.lookup_message_on_queue(message_type, address)
-            if message is not None:
-                return message
-        return None
-
-    def lookup_message_on_queue(self, message_type: MessageType, address: int):
-        for i in range(len(self.data_messages_queue)):
-            message = self.data_messages_queue[i]
-            if message.message_type == message_type \
-                    and message.address == address \
-                    and message.destination == self.cache.cache_number:
-                self.data_messages_queue.pop(i)
-                return message
+            for i in range(len(self.data_messages_queue)):
+                message = self.data_messages_queue[i]
+                if (message.message_type == MessageType.MEMORY_DATA_RESPONSE
+                    or message.message_type == MessageType.CACHE_DATA_RESPONSE) \
+                        and message.address == address:
+                    self.data_messages_queue.pop(i)
+                    return message
         return None
 
     def find_recent_load_from_memory(self, address):
@@ -417,17 +396,6 @@ class CacheController:
                 self.data_messages_queue.pop(i)
                 return message
         return None
-
-    def are_there_sharers(self, address: int):
-        message = self.await_message_from_bus(MessageType.SHARED_RESPONSE, address,
-                                              max_time=self.timing.await_sharers_timing)
-        if message is not None:
-            return True
-        else:
-            return False
-
-    def return_shared_to_bus(self, address: int, destination: int):
-        self.send_message_to_bus(MessageType.SHARED_RESPONSE, address, destination=destination)
 
     def send_message_to_bus(self, message_type: MessageType, address: int, destination=None, data=None):
         message = Message(message_type, self.cache.cache_number, destination=destination, address=address, data=data)
