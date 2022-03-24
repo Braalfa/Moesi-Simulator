@@ -113,6 +113,7 @@ class CacheController:
                     "Skipped, message was irrelevant message : " + message.__str__())
 
     def write_request(self, address: int, new_value: str):
+        self.timing.cache_wait()
         line, state = self.cache.obtain_line_and_state_and_acquire_lock(address)
         self.current_instruction_type = InstructionType.WRITE
         if state != State.I:
@@ -122,6 +123,7 @@ class CacheController:
         line.release_lock()
 
     def read_request(self, address: int):
+        self.timing.cache_wait()
         line, state = self.cache.obtain_line_and_state_and_acquire_lock(address)
         self.current_instruction_type = InstructionType.READ
         if state != State.I:
@@ -134,7 +136,6 @@ class CacheController:
     def transition_by_cpu(self, current_state: State, line: CacheLine,
                           action: CPUAction, address: int, new_value: str = None):
         self.logger.info("Transition by cpu; current state: " + str(current_state))
-        self.timing.cache_wait()
         if current_state == State.I:
             return self.transition_by_cpu_from_I(action, line, address, new_value)
         elif current_state == State.S:
@@ -283,7 +284,6 @@ class CacheController:
         return processed
 
     def transition_by_bus(self, message: Message, line: CacheLine):
-        self.timing.cache_wait()
         current_state = line.get_state()
         self.logger.info("Transition by bus ; current state: " + str(current_state) + " Message : " + message.__str__()
                          + " Address " + str(line.get_address()))
