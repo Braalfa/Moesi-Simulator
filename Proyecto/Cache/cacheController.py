@@ -263,7 +263,7 @@ class CacheController:
             pass
         elif message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS \
-                or message.message_type == MessageType.INVALIDATE_SHARED_AND_EXCLUSIVE:
+                or message.message_type == MessageType.INVALIDATE_SHARED:
             self.unexpected_messages_queue.append(message)
         elif message.message_type == MessageType.MEMORY_DATA_RESPONSE:
             self.data_messages_queue.append(message)
@@ -304,8 +304,7 @@ class CacheController:
             next_state = State.S
             line.set_state(next_state)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
-        elif message.message_type == MessageType.WRITE_MISS\
-                or message.message_type == MessageType.INVALIDATE_SHARED_AND_EXCLUSIVE:
+        elif message.message_type == MessageType.WRITE_MISS:
             next_state = State.I
             line.set_state(next_state)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
@@ -317,7 +316,7 @@ class CacheController:
             self.supply_data_to_bus(message.address, line.get_data(), message.origin)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
         elif message.message_type == MessageType.WRITE_MISS\
-                or message.message_type == MessageType.INVALIDATE_SHARED_AND_EXCLUSIVE:
+                or message.message_type == MessageType.INVALIDATE_SHARED:
             next_state = State.I
             line.set_state(next_state)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
@@ -356,7 +355,7 @@ class CacheController:
         self.send_message_to_bus(MessageType.WRITE_MISS, address, data=data)
 
     def broadcast_invalidate_shared(self, address: int, data: str):
-        self.send_message_to_bus(MessageType.INVALIDATE_SHARED_AND_EXCLUSIVE, address, data=data)
+        self.send_message_to_bus(MessageType.INVALIDATE_SHARED, address, data=data)
 
     def ask_data_from_memory(self, address: int):
         self.send_message_to_bus(MessageType.REQUEST_FROM_MEMORY, address)
