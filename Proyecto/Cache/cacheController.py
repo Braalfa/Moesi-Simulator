@@ -41,7 +41,9 @@ class CacheController:
         self.run_flag = True
 
     def start_execution(self):
-        thread = threading.Thread(target=self.run, args=())
+        thread = threading.Thread(target=self.run_cpu_processing, args=())
+        thread.start()
+        thread = threading.Thread(target=self.run_message_processing, args=())
         thread.start()
         thread = threading.Thread(target=self.send_bus_message_loop, args=())
         thread.start()
@@ -68,11 +70,26 @@ class CacheController:
         except IndexError:
             return None
 
-    def run(self):
+    def run_cpu_processing(self):
         while self.execute_cache_flag:
             self.process_cpu_operation()
-            self.process_pending_messages()
+            while len(self.unexpected_messages_queue)>0:
+                self.status = "Processing Bus Messages"
             self.status = "Idle"
+
+    def run_message_processing(self):
+        while self.execute_cache_flag:
+            if len(self.unexpected_messages_queue) > 0:
+                message = self.unexpected_messages_queue.pop(0)
+                line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
+                if line is not None:
+                    self.logger.info(
+                        "Transitioning on message : " + message.__str__() + " Line " + str(line.get_address()))
+                    self.transition_by_bus(message, line)
+                    line.release_lock()
+                else:
+                    self.logger.info(
+                        "Skipped, message was irrelevant message : " + message.__str__())
 
     def process_cpu_operation(self):
         self.cpu_operation_lock.acquire()
@@ -87,20 +104,6 @@ class CacheController:
                 self.output_data = self.read_request(self.next_cpu_operation.address)
             self.next_cpu_operation = None
         self.cpu_operation_lock.release()
-
-    def process_pending_messages(self):
-        while len(self.unexpected_messages_queue) > 0:
-            self.status = "Processing Bus Messages"
-            message = self.unexpected_messages_queue.pop(0)
-            line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
-            if line is not None:
-                self.logger.info(
-                    "Transitioning on skipped message : " + message.__str__() + " Line " + str(line.get_address()))
-                self.transition_by_bus(message, line)
-                line.release_lock()
-            else:
-                self.logger.info(
-                    "Skipped, message was irrelevant message : " + message.__str__())
 
     def write_request(self, address: int, new_value: str):
         self.timing.cache_wait()
