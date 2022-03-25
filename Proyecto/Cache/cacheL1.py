@@ -63,18 +63,9 @@ class Cache:
         line = self.find_line_in_cache(address)
         return line.data
 
-    def read_and_update_state(self, address: int, next_state: State):
-        line = self.find_line_in_cache(address)
-        line.set_state(next_state)
-        return line.data
-
     def write(self, address: int, new_value: str, next_state: State):
         line = self.find_line_in_cache(address)
         line.set_data(new_value)
-        line.set_state(next_state)
-
-    def write_state(self, address: int, next_state: State):
-        line = self.find_line_in_cache(address)
         line.set_state(next_state)
 
     def obtain_line_and_state_and_acquire_lock(self, address) -> (CacheLine, State):
