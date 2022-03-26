@@ -163,7 +163,6 @@ class CacheController:
             message = self.read_cache_response_from_bus(address)
             if message is None:
                 self.logger.info("No sharers found")
-                self.data_messages_queue = []
                 self.read_from_memory(address, line)
             else:
                 self.logger.info("Data found")
