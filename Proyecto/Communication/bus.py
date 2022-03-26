@@ -21,9 +21,6 @@ class Bus:
         self.main_memory = main_memory
 
     def send_message(self, message: Message):
-        self.queue_l += 1
         for cache_controller in self.cache_controllers:
             cache_controller.receive_message_from_bus(message)
         self.main_memory.receive_message_from_bus(message)
-        self.queue_l -= 1
-        print(self.queue_l)

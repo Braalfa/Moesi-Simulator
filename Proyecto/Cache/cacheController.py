@@ -98,7 +98,7 @@ class CacheController:
             if self.should_skip_preprocessing_message:
                 processed = True
                 self.should_skip_preprocessing_message = False
-            if line.address == message.address:
+            if line.address == message.address and line.state != State.I:
                 self.logger.info("Preprocessing; message:" + message.__str__())
                 self.transition_by_bus(message, line)
                 processed = True
