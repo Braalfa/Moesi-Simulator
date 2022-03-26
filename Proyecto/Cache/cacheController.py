@@ -24,6 +24,7 @@ class CacheController:
     def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing, bus: Bus):
         self.cache = cache
         self.unexpected_messages_queue = []
+        self.unprocessed_messages_queue = []
         self.data_messages_queue = []
         self.send_messages_queue = []
         self.logger = logger
@@ -48,48 +49,51 @@ class CacheController:
         thread = threading.Thread(target=self.send_bus_message_loop, args=())
         thread.start()
 
-    def receive_message_from_bus(self, message):
-        thread = threading.Thread(target=self.receive_message_from_bus_aux, args=(message,))
-        thread.start()
-
     def send_bus_message_loop(self):
         while self.run_flag:
             if len(self.send_messages_queue) > 0:
                 message = self.send_messages_queue.pop(0)
                 self.bus.send_message(message)
 
-    def get_most_recent_instruction_as_string(self):
-        if self.most_recent_instruction is not None:
-            return self.most_recent_instruction.as_string_instruction()
-        else:
-            return ''
-
-    def return_next_send_message(self):
-        try:
-            return self.send_messages_queue.pop(0)
-        except IndexError:
-            return None
-
     def run_cpu_processing(self):
         while self.execute_cache_flag:
             self.process_cpu_operation()
-            while len(self.unexpected_messages_queue)>0:
+            while len(self.unexpected_messages_queue) > 0:
                 self.status = "Processing Bus Messages"
+            self.process_pending_messages()
             self.status = "Idle"
+
+    def process_pending_messages(self):
+        while len(self.unprocessed_messages_queue) > 0:
+            self.status = "Processing Bus Messages"
+            message = self.unprocessed_messages_queue.pop(0)
+            line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
+            if line is not None:
+                self.logger.info(
+                    "Transitioning on skipped message : " + message.__str__() + " Line " + str(line.get_address()))
+                self.transition_by_bus(message, line)
+                line.release_lock()
+            else:
+                self.logger.info(
+                    "Skipped, message was irrelevant message : " + message.__str__())
 
     def run_message_processing(self):
         while self.execute_cache_flag:
             if len(self.unexpected_messages_queue) > 0:
                 message = self.unexpected_messages_queue.pop(0)
-                line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
-                if line is not None:
-                    self.logger.info(
-                        "Transitioning on message : " + message.__str__() + " Line " + str(line.get_address()))
-                    self.transition_by_bus(message, line)
-                    line.release_lock()
-                else:
-                    self.logger.info(
-                        "Skipped, message was irrelevant message : " + message.__str__())
+                was_processed = self.try_to_preprocess_bus_message(message)
+                if not was_processed:
+                    self.unprocessed_messages_queue.append(message)
+
+    def try_to_preprocess_bus_message(self, message: Message) -> bool:
+        line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
+        processed = False
+        if line is not None:
+            self.logger.info("Preprocessing; message:" + message.__str__())
+            self.transition_by_bus(message, line)
+            processed = True
+            line.release_lock()
+        return processed
 
     def process_cpu_operation(self):
         self.cpu_operation_lock.acquire()
@@ -245,36 +249,6 @@ class CacheController:
 
         self.logger.info("Transition by cpu; next_state: " + str(next_state))
 
-    def receive_message_from_bus_aux(self, message: Message):
-        self.logger.info("Message received from bus; message:" + message.__str__())
-        if message.origin == self.cache.cache_number:
-            return
-        message_preprocessed = False
-        if message.message_type == MessageType.READ_MISS:
-            message_preprocessed = self.try_to_preprocess_read_miss(message)
-        if message_preprocessed:
-            pass
-        elif message.message_type == MessageType.READ_MISS \
-                or message.message_type == MessageType.WRITE_MISS \
-                or message.message_type == MessageType.INVALIDATE_SHARED:
-            self.unexpected_messages_queue.append(message)
-        elif message.message_type == MessageType.MEMORY_DATA_RESPONSE:
-            self.data_messages_queue.append(message)
-        elif message.message_type == MessageType.CACHE_DATA_RESPONSE \
-                and message.destination == self.cache.cache_number:
-            self.data_messages_queue.append(message)
-
-    def try_to_preprocess_read_miss(self, message: Message) -> bool:
-        line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
-        processed = False
-        if line is not None:
-            if line.state in [State.E, State.O, State.M]:
-                self.logger.info("Preprocessing read miss; message:" + message.__str__())
-                self.transition_by_bus(message, line)
-                processed = True
-            line.release_lock()
-        return processed
-
     def transition_by_bus(self, message: Message, line: CacheLine):
         current_state = line.get_state()
         self.logger.info("Transition by bus ; current state: " + str(current_state) + " Message : " + message.__str__()
@@ -395,3 +369,33 @@ class CacheController:
         message = Message(message_type, self.cache.cache_number, destination=destination, address=address, data=data)
         self.logger.info("Message sent to bus; message: " + message.__str__())
         self.send_messages_queue.append(message)
+
+    def get_most_recent_instruction_as_string(self):
+        if self.most_recent_instruction is not None:
+            return self.most_recent_instruction.as_string_instruction()
+        else:
+            return ''
+
+    def return_next_send_message(self):
+        try:
+            return self.send_messages_queue.pop(0)
+        except IndexError:
+            return None
+
+    def receive_message_from_bus(self, message):
+        thread = threading.Thread(target=self.receive_message_from_bus_aux, args=(message,))
+        thread.start()
+
+    def receive_message_from_bus_aux(self, message: Message):
+        self.logger.info("Message received from bus; message:" + message.__str__())
+        if message.origin == self.cache.cache_number:
+            return
+        elif message.message_type == MessageType.READ_MISS \
+                or message.message_type == MessageType.WRITE_MISS \
+                or message.message_type == MessageType.INVALIDATE_SHARED:
+            self.unexpected_messages_queue.append(message)
+        elif message.message_type == MessageType.MEMORY_DATA_RESPONSE:
+            self.data_messages_queue.append(message)
+        elif message.message_type == MessageType.CACHE_DATA_RESPONSE \
+                and message.destination == self.cache.cache_number:
+            self.data_messages_queue.append(message)
