@@ -163,7 +163,6 @@ class CacheController:
             message = self.read_cache_response_from_bus(address)
             if message is None:
                 self.logger.info("No sharers found")
-                self.data_messages_queue = []
                 self.read_from_memory(address, line)
             else:
                 self.logger.info("Data found")
@@ -424,11 +423,7 @@ class CacheController:
         except IndexError:
             return None
 
-    def receive_message_from_bus(self, message):
-        thread = threading.Thread(target=self.receive_message_from_bus_aux, args=(message,))
-        thread.start()
-
-    def receive_message_from_bus_aux(self, message: Message):
+    def receive_message_from_bus(self, message: Message):
         self.logger.info("Message received from bus; message:" + message.__str__())
         if message.origin == self.cache.cache_number:
             return
