@@ -293,7 +293,8 @@ class CacheController:
             next_state = State.S
             line.set_state(next_state)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
-        elif message.message_type == MessageType.WRITE_MISS:
+        elif message.message_type == MessageType.WRITE_MISS \
+                or message.message_type == MessageType.INVALIDATE_SHARED:
             next_state = State.I
             line.set_state(next_state)
             self.logger.info("Transition by bus; next_state: " + str(next_state))
