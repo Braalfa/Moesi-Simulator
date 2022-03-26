@@ -23,6 +23,7 @@ class CPUOperationStatus(Enum):
 class CacheController:
     def __init__(self, cache: Cache, logger: logging.Logger, timing: Timing, bus: Bus):
         self.cache = cache
+        self.unexpected_messages_queue_lock = Lock()
         self.unexpected_messages_queue = []
         self.unprocessed_messages_queue = []
         self.data_messages_queue = []
@@ -40,6 +41,8 @@ class CacheController:
         self.status = "Idle"
         self.bus = bus
         self.run_flag = True
+        self.should_skip_preprocessing_message = False
+        self.current_preprocessing_message = None
 
     def start_execution(self):
         thread = threading.Thread(target=self.run_cpu_processing, args=())
@@ -80,19 +83,28 @@ class CacheController:
     def run_message_processing(self):
         while self.execute_cache_flag:
             if len(self.unexpected_messages_queue) > 0:
+                self.unexpected_messages_queue_lock.acquire()
                 message = self.unexpected_messages_queue.pop(0)
+                self.unexpected_messages_queue_lock.release()
                 was_processed = self.try_to_preprocess_bus_message(message)
                 if not was_processed:
                     self.unprocessed_messages_queue.append(message)
 
     def try_to_preprocess_bus_message(self, message: Message) -> bool:
+        self.current_preprocessing_message = message
         line = self.cache.obtain_line_by_address_and_acquire_lock(message.address)
         processed = False
         if line is not None:
-            self.logger.info("Preprocessing; message:" + message.__str__())
-            self.transition_by_bus(message, line)
-            processed = True
+            if self.should_skip_preprocessing_message:
+                processed = True
+                self.should_skip_preprocessing_message = False
+            if line.address == message.address:
+                self.logger.info("Preprocessing; message:" + message.__str__())
+                self.transition_by_bus(message, line)
+                processed = True
+            self.current_preprocessing_message = None
             line.release_lock()
+        self.current_preprocessing_message = None
         return processed
 
     def process_cpu_operation(self):
@@ -188,16 +200,44 @@ class CacheController:
         no_removed_messages = []
         # Sleep to make sure messages arrive
         time.sleep(1)
+        self.unexpected_messages_queue_lock.acquire()
         for i in range(len(self.unexpected_messages_queue)):
             message = self.unexpected_messages_queue[i]
-            if message.message_type == MessageType.WRITE_MISS \
+            if (message.message_type == MessageType.WRITE_MISS
+                or message.message_type == MessageType.INVALIDATE_SHARED) \
                     and message.address == address \
                     and message.origin == origin \
                     and message.data == acceptable_value:
+                self.logger.info("Removing message: " + message.__str__())
                 pass
             else:
                 no_removed_messages.append(message)
         self.unexpected_messages_queue = no_removed_messages
+        self.unexpected_messages_queue_lock.release()
+
+        message = self.current_preprocessing_message
+        if message is not None and \
+                (message.message_type == MessageType.WRITE_MISS
+                 or message.message_type == MessageType.INVALIDATE_SHARED) \
+                and message.address == address \
+                and message.origin == origin \
+                and message.data == acceptable_value:
+            self.should_skip_preprocessing_message = True
+            self.logger.info("Removing message: " + message.__str__())
+
+        no_removed_messages = []
+        for i in range(len(self.unprocessed_messages_queue)):
+            message = self.unprocessed_messages_queue[i]
+            if (message.message_type == MessageType.WRITE_MISS
+                or message.message_type == MessageType.INVALIDATE_SHARED) \
+                    and message.address == address \
+                    and message.origin == origin \
+                    and message.data == acceptable_value:
+                self.logger.info("Removing message: " + message.__str__())
+                pass
+            else:
+                no_removed_messages.append(message)
+        self.unprocessed_messages_queue = no_removed_messages
 
     def transition_by_cpu_from_S(self, action: CPUAction, line: CacheLine, address: int, new_value: str = None):
         if action == CPUAction.READ:
@@ -338,14 +378,14 @@ class CacheController:
         return message
 
     def read_data_response_from_bus(self, address: int):
-        message = self.await_data_from_bus(address, max_time=self.timing.infinite_timing)
+        message = self.await_data_from_bus(address, max_time=self.timing.infinite_timing, destination_matters=True)
         if message is not None:
             return message
         else:
             self.logger.error("The memory didn't respond")
             return None
 
-    def await_data_from_bus(self, address: int, max_time: float = 10) -> Message | None:
+    def await_data_from_bus(self, address: int, max_time: float = 10, destination_matters=False) -> Message | None:
         start = time.time()
         while time.time() - start < max_time:
             for i in range(len(self.data_messages_queue)):
@@ -353,8 +393,10 @@ class CacheController:
                 if (message.message_type == MessageType.MEMORY_DATA_RESPONSE
                     or message.message_type == MessageType.CACHE_DATA_RESPONSE) \
                         and message.address == address:
-                    self.data_messages_queue.pop(i)
-                    return message
+                    if not destination_matters or (destination_matters and
+                                                   message.destination == self.cache.cache_number):
+                        self.data_messages_queue.pop(i)
+                        return message
         return None
 
     def find_recent_load_from_memory(self, address):
@@ -393,7 +435,9 @@ class CacheController:
         elif message.message_type == MessageType.READ_MISS \
                 or message.message_type == MessageType.WRITE_MISS \
                 or message.message_type == MessageType.INVALIDATE_SHARED:
+            self.unexpected_messages_queue_lock.acquire()
             self.unexpected_messages_queue.append(message)
+            self.unexpected_messages_queue_lock.release()
         elif message.message_type == MessageType.MEMORY_DATA_RESPONSE:
             self.data_messages_queue.append(message)
         elif message.message_type == MessageType.CACHE_DATA_RESPONSE \

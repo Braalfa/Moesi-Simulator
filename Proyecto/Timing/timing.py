@@ -5,7 +5,7 @@ class Timing:
     def __init__(self, base_timing: float = 1):
         self.base_timing = base_timing
         self.execute_timing = self.base_timing*2
-        self.memory_timing = self.base_timing*5
+        self.memory_timing = self.base_timing*6
         self.cache_timing = self.base_timing*2
         self.max_bus_data_timing = self.base_timing*10
         self.infinite_timing = 1000
